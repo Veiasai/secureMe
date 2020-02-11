@@ -2,12 +2,17 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cassert>
+#include <memory>
 
 #include <seccomp.h>
 #include <cxxopts.hpp>
 #include <yaml-cpp/yaml.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
+
+#include "RuleManager.h"
+
+using namespace SAIL;
 
 struct ArgInfo {
     std::string targetPath;
@@ -79,8 +84,8 @@ ArgInfo parseArgs(int argc, char **argv) {
 int main(int argc, char **argv)
 {
     const ArgInfo argInfo = parseArgs(argc, argv);
-    
-    
+
+    std::unique_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(argInfo.configPath);
 
     // parse and apply rules
     // config
