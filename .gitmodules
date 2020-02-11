@@ -1,0 +1,9 @@
+[submodule "src/cxxopts"]
+	path = src/cxxopts
+	url = git@github.com:jarro2783/cxxopts.git
+[submodule "src/yaml-cpp"]
+	path = src/yaml-cpp
+	url = git@github.com:jbeder/yaml-cpp.git
+[submodule "src/spdlog"]
+	path = src/spdlog
+	url = git@github.com:gabime/spdlog.git
