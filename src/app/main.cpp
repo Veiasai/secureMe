@@ -3,6 +3,9 @@
 #include <unistd.h>
 #include <cassert>
 #include <memory>
+#include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/ptrace.h>
 
 #include <seccomp.h>
 #include <cxxopts.hpp>
@@ -81,15 +84,70 @@ ArgInfo parseArgs(int argc, char **argv) {
     return argInfo;
 }
 
+void runTarget(const ArgInfo &argInfo) {
+    // init rule manager
+    std::unique_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(argInfo.configPath);
+
+    // scmp_filter_ctx ctx;
+    // ctx = seccomp_init(SCMP_ACT_ALLOW);
+    // // seccomp_rule_add(ctx, SCMP_ACT_TRAP, SCMP_SYS(write), 1, SCMP_A2(SCMP_CMP_EQ, 5));
+    // seccomp_rule_add(ctx, SCMP_ACT_TRACE(1), SCMP_SYS(write), 0);
+    // // seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(write), 0);
+    // seccomp_load(ctx);
+
+    // redirect
+    if (!argInfo.targetlogPath.empty()) {
+        int targetlogFd = open(argInfo.targetlogPath.c_str(), O_RDWR | O_CREAT | O_APPEND, 0666);
+        assert(targetlogFd > 0);
+        dup2(targetlogFd, 1);
+        dup2(targetlogFd, 2);
+    }
+
+    // build args
+    std::vector<char *> args;
+    args.push_back(const_cast<char *>(argInfo.targetPath.c_str()));
+    for (const std::string &arg : argInfo.targetArgs) {
+        args.push_back(const_cast<char *>(arg.c_str()));
+    }
+    args.push_back(nullptr);
+
+    ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
+
+    char **command = &args[0];
+    // execv after TRACEME will trigger a SIGTRAP delivered automatically
+    execv(argInfo.targetPath.c_str(), command);
+    assert(0);
+}
+
+void runDaemon(const pid_t child) {
+    int status;
+    // catch the execv-caused SIGTRAP here
+    waitpid(child, &status, WSTOPPED);
+    assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
+    ptrace(PTRACE_SETOPTIONS, child, nullptr, PTRACE_O_TRACESECCOMP);
+    ptrace(PTRACE_CONT, child, nullptr, nullptr);
+
+    while (true) {
+        waitpid(child, &status, 0);
+        spdlog::info("target return with status: {:x}", status);
+        if (WIFEXITED(status)) {
+            spdlog::info("target exit");
+            break;
+        }
+        ptrace(PTRACE_CONT, child, nullptr, nullptr);
+    }
+}
+
 int main(int argc, char **argv)
 {
     const ArgInfo argInfo = parseArgs(argc, argv);
 
-    std::unique_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(argInfo.configPath);
+    const pid_t child = fork();
+    assert(child >= 0);
+    if (child == 0) {
+        runTarget(argInfo);
+    }
+    runDaemon(child);
 
-    // parse and apply rules
-    // config
-
-    // execve
-    // target args 
+    return 0;
 }
