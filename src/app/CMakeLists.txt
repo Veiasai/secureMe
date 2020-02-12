@@ -1,4 +1,10 @@
-add_executable(SecureMe main.cpp)
+aux_source_directory(. DIR_SRCS)
 
-target_link_libraries(SecureMe ${SECCOMP_LIB})
-target_include_directories(SecureMe PRIVATE ${SECCOMP_INCLUDE_DIR})
+add_executable(secureme ${DIR_SRCS})
+
+target_link_libraries(secureme ${SECCOMP_LIB})
+target_link_libraries(secureme cxxopts)
+target_link_libraries(secureme spdlog)
+target_link_libraries(secureme yaml-cpp)
+
+target_include_directories(secureme PRIVATE ${SECCOMP_INCLUDE_DIR})
