@@ -7,7 +7,6 @@
 #include <sys/types.h>
 #include <sys/ptrace.h>
 
-#include <seccomp.h>
 #include <cxxopts.hpp>
 #include <yaml-cpp/yaml.h>
 #include <spdlog/spdlog.h>
@@ -88,12 +87,7 @@ void runTarget(const ArgInfo &argInfo) {
     // init rule manager
     std::unique_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(argInfo.configPath);
 
-    // scmp_filter_ctx ctx;
-    // ctx = seccomp_init(SCMP_ACT_ALLOW);
-    // // seccomp_rule_add(ctx, SCMP_ACT_TRAP, SCMP_SYS(write), 1, SCMP_A2(SCMP_CMP_EQ, 5));
-    // seccomp_rule_add(ctx, SCMP_ACT_TRACE(1), SCMP_SYS(write), 0);
-    // // seccomp_rule_add(ctx, SCMP_ACT_ERRNO(EPERM), SCMP_SYS(write), 0);
-    // seccomp_load(ctx);
+    rulemgr->applyRules();
 
     // redirect
     if (!argInfo.targetlogPath.empty()) {
