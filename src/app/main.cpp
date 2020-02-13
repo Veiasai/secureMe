@@ -13,6 +13,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 #include "RuleManager.h"
+#include "Daemon.h"
 
 using namespace SAIL;
 
@@ -113,25 +114,6 @@ void runTarget(const ArgInfo &argInfo) {
     assert(0);
 }
 
-void runDaemon(const pid_t child) {
-    int status;
-    // catch the execv-caused SIGTRAP here
-    waitpid(child, &status, WSTOPPED);
-    assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
-    ptrace(PTRACE_SETOPTIONS, child, nullptr, PTRACE_O_TRACESECCOMP);
-    ptrace(PTRACE_CONT, child, nullptr, nullptr);
-
-    while (true) {
-        waitpid(child, &status, 0);
-        spdlog::info("target return with status: {:x}", status);
-        if (WIFEXITED(status)) {
-            spdlog::info("target exit");
-            break;
-        }
-        ptrace(PTRACE_CONT, child, nullptr, nullptr);
-    }
-}
-
 int main(int argc, char **argv)
 {
     const ArgInfo argInfo = parseArgs(argc, argv);
@@ -141,7 +123,8 @@ int main(int argc, char **argv)
     if (child == 0) {
         runTarget(argInfo);
     }
-    runDaemon(child);
+    std::unique_ptr<core::Daemon> daemon = std::make_unique<core::Daemon>(child);
+    daemon->run();
 
     return 0;
 }
