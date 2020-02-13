@@ -4,6 +4,7 @@
 #include <memory>
 
 #include <seccomp.h>
+#include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
 namespace SAIL { namespace rule {

@@ -2,6 +2,7 @@
 
 #include "RuleManager.h"
 #include "BasicRule.h"
+#include "FileWhitelist.h"
 
 namespace SAIL { namespace rule {
 
@@ -10,6 +11,7 @@ RuleManager::RuleManager(const std::string &configPath) {
     const YAML::Node config = YAML::LoadFile(configPath);
 
     this->modules["BasicRule"] = std::make_unique<BasicRule>(this->ctxp, config["rules"]);
+    this->modules["FileWhitelist"] = std::make_unique<FileWhitelist>(this->ctxp, config["plugins"]["filewhitelist"]);
 
     this->initRules();
 }
