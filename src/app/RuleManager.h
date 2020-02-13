@@ -1,16 +1,32 @@
 #pragma once
 
 #include <string>
+#include <memory>
 
 #include <seccomp.h>
 #include <yaml-cpp/yaml.h>
 
 namespace SAIL { namespace rule {
 
+class RuleModule;
+
 class RuleManager
 {
 private:
-    scmp_filter_ctx ctx;
+    std::shared_ptr<scmp_filter_ctx> ctxp;
+    std::map<std::string, std::unique_ptr<RuleModule>> modules;
+
+public:
+    RuleManager(const std::string &configPath);
+    void initRules();
+    void applyRules();
+};
+
+class RuleModule
+{
+protected:
+    std::shared_ptr<scmp_filter_ctx> ctxp;
+    const YAML::Node ruleNode;
 
     // connect seccomp macro with our config yaml syntax
     const std::map<std::string, enum scmp_compare> cmpActionMap = {
@@ -23,9 +39,8 @@ private:
     };
 
 public:
-    RuleManager(const std::string &configPath);
-    void ruleInit(const YAML::Node &yaml);
-    void applyRules();
+    RuleModule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode);
+    virtual void initRules() = 0;
 };
 
 }}
