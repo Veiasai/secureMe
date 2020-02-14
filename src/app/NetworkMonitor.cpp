@@ -29,6 +29,7 @@ bool NetworkMonitor::checkIPv4(const in_addr_t &ipv4) {
     if (this->ipv4WhiteList.find(ipv4) != this->ipv4WhiteList.end()) {
         return true;
     }
+    spdlog::critical("connect to {}, which is not in whitelist", std::string(addrBuf));
     return false;
 }
 

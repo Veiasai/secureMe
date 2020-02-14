@@ -32,6 +32,7 @@ bool FileWhitelist::checkFile(const std::string &filename) {
             return true;
         }
     }
+    spdlog::critical("open file {}, which is not in whitelist", filename);
     return false;
 }
 

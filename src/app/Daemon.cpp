@@ -42,7 +42,7 @@ void Daemon::run() {
         spdlog::info("----------------------------------------");
         spdlog::info("target {} traps with status: {:x}", tid, status);
 
-        if (WIFEXITED(status)) {
+        if (WIFEXITED(status) || WIFSIGNALED(status)) {
             spdlog::info("target exit");
             break;
         }
@@ -73,6 +73,9 @@ void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
         spdlog::info("open's filename: {}", buf);
         bool inWhitelist = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule("FileWhitelist"))->checkFile(buf);
         spdlog::info("inWhitelist: {}", inWhitelist);
+        if (!inWhitelist) {
+            this->end();
+        }
     }
     else if (eventMsg == SM_EVM_CONNECT) {
         // connect-caused trap
@@ -87,8 +90,15 @@ void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
             spdlog::debug("NetworkMonitor: catch connect {}", ipv4);
             bool inWhitelist = std::dynamic_pointer_cast<rule::NetworkMonitor>(this->rulemgr->getModule("NetworkMonitor"))->checkIPv4(ipv4);
             spdlog::info("inWhitelist: {}", inWhitelist);
+            if (!inWhitelist) {
+               this->end();
+            }
         }
     }
+}
+
+void Daemon::end() {
+    kill(this->child, SIGKILL);
 }
 
 }}
