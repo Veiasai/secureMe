@@ -40,14 +40,14 @@ void Daemon::run() {
     while (true) {
         int tid = waitpid(-1, &status, 0);
         spdlog::info("----------------------------------------");
-        spdlog::info("target {} return with status: {:x}", tid, status);
+        spdlog::info("target {} traps with status: {:x}", tid, status);
 
         if (WIFEXITED(status)) {
             spdlog::info("target exit");
             break;
         }
 
-        assert(hasEvent(status) || isNewThread(status));
+        // assert(hasEvent(status) || isNewThread(status));
         if (hasEvent(status)) {
             // get event message
             long msg;

@@ -24,7 +24,7 @@ void NetworkMonitor::initRules() {
 bool NetworkMonitor::checkIPv4(const in_addr_t &ipv4) {
     char addrBuf[20];
     inet_ntop(AF_INET, &(ipv4), addrBuf, INET_ADDRSTRLEN);
-    // spdlog::info("check ipv4: {}", std::string(addrBuf));
+    spdlog::info("check ipv4: {}", std::string(addrBuf));
 
     if (this->ipv4WhiteList.find(ipv4) != this->ipv4WhiteList.end()) {
         return true;
