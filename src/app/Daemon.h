@@ -9,16 +9,21 @@
 
 #include <spdlog/spdlog.h>
 
+#include "RuleManager.h"
+#include "Utils.h"
+
 namespace SAIL { namespace core {
 
 class Daemon
 {
 private:
-    pid_t child;
+    const pid_t child;
+    const std::shared_ptr<rule::RuleManager> rulemgr;
+    const std::shared_ptr<util::Utils> up;
 
 public:
-    Daemon(const pid_t child);
+    Daemon(const pid_t child, const std::shared_ptr<rule::RuleManager> &rulemgr, const std::shared_ptr<util::Utils> &up);
     void run();
+    void handleEvent(const long eventMsg);
 };
-
 }}

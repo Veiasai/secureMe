@@ -8,6 +8,7 @@ FileWhitelist::FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::
 void FileWhitelist::initRules(){
     for (auto filenameRe : this->ruleNode) {
         const std::string filename = this->handleEscape(filenameRe.as<std::string>());
+        // the parameter of SCMP_ACT_TRACE (1) means open-caused trap
         seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(1), SCMP_SYS(open), 0);
     }
 }

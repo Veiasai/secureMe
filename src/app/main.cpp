@@ -123,7 +123,8 @@ int main(int argc, char **argv)
     if (child == 0) {
         runTarget(argInfo, rulemgr);
     }
-    std::unique_ptr<core::Daemon> daemon = std::make_unique<core::Daemon>(child);
+    std::shared_ptr<util::Utils> up = std::make_shared<util::Utils>();
+    std::unique_ptr<core::Daemon> daemon = std::make_unique<core::Daemon>(child, rulemgr, up);
     daemon->run();
 
     return 0;
