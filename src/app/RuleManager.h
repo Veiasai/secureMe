@@ -20,7 +20,7 @@ private:
 public:
     RuleManager(const std::string &configPath);
     void initRules();
-    void applyRules();
+    void applyRules() const;
 };
 
 class RuleModule

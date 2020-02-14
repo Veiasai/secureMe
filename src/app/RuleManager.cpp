@@ -22,7 +22,7 @@ void RuleManager::initRules() {
     }
 }
 
-void RuleManager::applyRules() {
+void RuleManager::applyRules() const {
     seccomp_load(*this->ctxp);
 }
 
