@@ -3,6 +3,7 @@
 #include "RuleManager.h"
 #include "BasicRule.h"
 #include "FileWhitelist.h"
+#include "NetworkMonitor.h"
 
 namespace SAIL { namespace rule {
 
@@ -12,6 +13,7 @@ RuleManager::RuleManager(const std::string &configPath) {
 
     this->modules["BasicRule"] = std::make_shared<BasicRule>(this->ctxp, config["rules"]);
     this->modules["FileWhitelist"] = std::make_shared<FileWhitelist>(this->ctxp, config["plugins"]["filewhitelist"]);
+    this->modules["NetworkMonitor"] = std::make_shared<NetworkMonitor>(this->ctxp, config["plugins"]["network"]);
 
     this->initRules();
 }

@@ -1,7 +1,9 @@
 #include <sys/user.h>
+#include <sys/socket.h>
 
 #include "Daemon.h"
 #include "FileWhitelist.h"
+#include "NetworkMonitor.h"
 
 namespace SAIL { namespace core {
 
@@ -61,6 +63,24 @@ void Daemon::handleEvent(const long eventMsg) {
         spdlog::info("open's filename: {}", buf);
         bool inWhitelist = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule("FileWhitelist"))->checkFile(buf);
         spdlog::info("inWhitelist: {}", inWhitelist);
+    }
+    else if (eventMsg == 2) {
+        // connect-caused trap
+        user_regs_struct regs;
+        ptrace(PTRACE_GETREGS, this->child, nullptr, &regs);
+        const int size = regs.rdx;
+        spdlog::info("sockaddr length: {}", size);
+        char *buf = new char(size);
+        this->up->readBytesFrom(this->child, (char *)regs.rsi, buf, size);
+        const struct sockaddr *sa = reinterpret_cast<struct sockaddr *>(buf);
+        if (sa->sa_family == AF_INET)
+        {
+            const struct sockaddr_in *sa_in = reinterpret_cast<const struct sockaddr_in *>(sa);
+            const in_addr_t ipv4 = sa_in->sin_addr.s_addr;
+            spdlog::debug("NetworkMonitor: catch connect {}", ipv4);
+            bool inWhitelist = std::dynamic_pointer_cast<rule::NetworkMonitor>(this->rulemgr->getModule("NetworkMonitor"))->checkIPv4(ipv4);
+            spdlog::info("inWhitelist: {}", inWhitelist);
+        }
     }
 }
 
