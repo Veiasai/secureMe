@@ -3,7 +3,11 @@
 
 namespace SAIL { namespace rule {
 
-FileWhitelist::FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode) : RuleModule(ctxp, ruleNode) {}
+FileWhitelist::FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode) : RuleModule(ctxp, ruleNode) {
+    for (const auto &rule : ruleNode.as<std::vector<std::string>>()) {
+        this->regFiles.emplace_back(rule);
+    }
+}
 
 void FileWhitelist::initRules(){
     for (auto filenameRe : this->ruleNode) {
@@ -21,6 +25,15 @@ std::string FileWhitelist::handleEscape(std::string regStr) {
         }
     }
     return regStr;
+}
+
+bool FileWhitelist::checkFile(const std::string &filename) {
+    for (std::regex regFile : this->regFiles) {
+        if (std::regex_match(filename, regFile)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 } // namespace rule

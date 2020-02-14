@@ -15,12 +15,13 @@ class RuleManager
 {
 private:
     std::shared_ptr<scmp_filter_ctx> ctxp;
-    std::map<std::string, std::unique_ptr<RuleModule>> modules;
+    std::map<std::string, std::shared_ptr<RuleModule>> modules;
 
 public:
     RuleManager(const std::string &configPath);
     void initRules();
     void applyRules() const;
+    std::shared_ptr<RuleModule> getModule(const std::string &moduleName);
 };
 
 class RuleModule

@@ -1,15 +1,21 @@
 #pragma once
 
+#include <regex>
+
 #include "RuleManager.h"
 
 namespace SAIL { namespace rule {
 
 class FileWhitelist : public RuleModule
 {
+private:
+    std::vector<std::regex> regFiles;
+
 public:
     FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode);
     void initRules() override;
     std::string handleEscape(std::string regStr);
+    bool checkFile(const std::string &filename);
 };
 
 } // namespace rule

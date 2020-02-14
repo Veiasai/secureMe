@@ -1,5 +1,8 @@
-#include "Daemon.h"
 #include <sys/user.h>
+
+#include "Daemon.h"
+#include "FileWhitelist.h"
+
 namespace SAIL { namespace core {
 
 Daemon::Daemon(const pid_t child, const std::shared_ptr<rule::RuleManager> &rulemgr, const std::shared_ptr<util::Utils> &up) 
@@ -56,6 +59,8 @@ void Daemon::handleEvent(const long eventMsg) {
         char buf[1000];
         this->up->readStrFrom(this->child, (char *)regs.rdi, buf, 1000);
         spdlog::info("open's filename: {}", buf);
+        bool inWhitelist = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule("FileWhitelist"))->checkFile(buf);
+        spdlog::info("inWhitelist: {}", inWhitelist);
     }
 }
 
