@@ -14,7 +14,8 @@ Daemon::Daemon(const pid_t child, const std::shared_ptr<rule::RuleManager> &rule
     // catch the execv-caused SIGTRAP here
     waitpid(this->child, &status, WSTOPPED);
     assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
-    ptrace(PTRACE_SETOPTIONS, this->child, nullptr, PTRACE_O_TRACESECCOMP);
+    const long ptraceOptions = PTRACE_O_TRACECLONE | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACESECCOMP;
+    ptrace(PTRACE_SETOPTIONS, this->child, nullptr, ptraceOptions);
     ptrace(PTRACE_CONT, this->child, nullptr, nullptr);
 }
 
@@ -28,38 +29,45 @@ static bool hasEvent(int status)
     return status >> 16 != 0;
 }
 
+static bool isNewThread(int status)
+{
+    // new thread will start from stopped state cause by SIGSTOP
+    return (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP);
+}
+
 void Daemon::run() {
     int status;
     while (true) {
-        waitpid(this->child, &status, 0);
-        spdlog::info("target return with status: {:x}", status);
-        
+        int tid = waitpid(-1, &status, 0);
+        spdlog::info("----------------------------------------");
+        spdlog::info("target {} return with status: {:x}", tid, status);
+
         if (WIFEXITED(status)) {
             spdlog::info("target exit");
             break;
         }
 
         // get event message
-        assert(hasEvent(status));
+        assert(hasEvent(status) || isNewThread(status));
         long msg;
-        ptrace(PTRACE_GETEVENTMSG, this->child, nullptr, (long)&msg);
+        ptrace(PTRACE_GETEVENTMSG, tid, nullptr, (long)&msg);
         spdlog::info("get event message: {}", msg);
 
         // handle event
-        this->handleEvent(msg);
+        this->handleEvent(msg, tid);
 
-        ptrace(PTRACE_CONT, this->child, nullptr, nullptr);
+        ptrace(PTRACE_CONT, tid, nullptr, nullptr);
     }
 }
 
-void Daemon::handleEvent(const long eventMsg) {
+void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
     if (eventMsg == 1) {
         // open-caused trap
         user_regs_struct regs;
-        ptrace(PTRACE_GETREGS, this->child, nullptr, &regs);
-        // spdlog::info("open's first arg: {}", regs.rdi);
+        ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
+        spdlog::info("[tid: {}] open's first arg: {}", tid, regs.rdi);
         char buf[1000];
-        this->up->readStrFrom(this->child, (char *)regs.rdi, buf, 1000);
+        this->up->readStrFrom(tid, (char *)regs.rdi, buf, 1000);
         spdlog::info("open's filename: {}", buf);
         bool inWhitelist = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule("FileWhitelist"))->checkFile(buf);
         spdlog::info("inWhitelist: {}", inWhitelist);
@@ -67,11 +75,11 @@ void Daemon::handleEvent(const long eventMsg) {
     else if (eventMsg == 2) {
         // connect-caused trap
         user_regs_struct regs;
-        ptrace(PTRACE_GETREGS, this->child, nullptr, &regs);
+        ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
         const int size = regs.rdx;
         spdlog::info("sockaddr length: {}", size);
         char *buf = new char(size);
-        this->up->readBytesFrom(this->child, (char *)regs.rsi, buf, size);
+        this->up->readBytesFrom(tid, (char *)regs.rsi, buf, size);
         const struct sockaddr *sa = reinterpret_cast<struct sockaddr *>(buf);
         if (sa->sa_family == AF_INET)
         {

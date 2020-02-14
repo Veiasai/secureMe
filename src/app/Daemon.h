@@ -24,6 +24,6 @@ private:
 public:
     Daemon(const pid_t child, const std::shared_ptr<rule::RuleManager> &rulemgr, const std::shared_ptr<util::Utils> &up);
     void run();
-    void handleEvent(const long eventMsg);
+    void handleEvent(const long eventMsg, const pid_t tid);
 };
 }}
