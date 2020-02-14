@@ -18,8 +18,7 @@ NetworkMonitor::NetworkMonitor(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML
 }
 
 void NetworkMonitor::initRules() {
-    // the parameter of SCMP_ACT_TRACE (2) means connect-caused trap
-    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(2), SCMP_SYS(connect), 0);
+    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(EVM_CONNECT), SCMP_SYS(connect), 0);
 }
 
 bool NetworkMonitor::checkIPv4(const in_addr_t &ipv4) {

@@ -7,6 +7,8 @@
 #include <spdlog/spdlog.h>
 #include <yaml-cpp/yaml.h>
 
+#include "macro.h"
+
 namespace SAIL { namespace rule {
 
 class RuleModule;

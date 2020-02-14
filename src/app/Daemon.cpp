@@ -47,21 +47,23 @@ void Daemon::run() {
             break;
         }
 
-        // get event message
         assert(hasEvent(status) || isNewThread(status));
-        long msg;
-        ptrace(PTRACE_GETEVENTMSG, tid, nullptr, (long)&msg);
-        spdlog::info("get event message: {}", msg);
+        if (hasEvent(status)) {
+            // get event message
+            long msg;
+            ptrace(PTRACE_GETEVENTMSG, tid, nullptr, (long)&msg);
+            spdlog::info("get event message: {}", msg);
 
-        // handle event
-        this->handleEvent(msg, tid);
+            // handle event
+            this->handleEvent(msg, tid);
+        }
 
         ptrace(PTRACE_CONT, tid, nullptr, nullptr);
     }
 }
 
 void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
-    if (eventMsg == 1) {
+    if (eventMsg == EVM_OPEN) {
         // open-caused trap
         user_regs_struct regs;
         ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
@@ -72,7 +74,7 @@ void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
         bool inWhitelist = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule("FileWhitelist"))->checkFile(buf);
         spdlog::info("inWhitelist: {}", inWhitelist);
     }
-    else if (eventMsg == 2) {
+    else if (eventMsg == EVM_CONNECT) {
         // connect-caused trap
         user_regs_struct regs;
         ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
