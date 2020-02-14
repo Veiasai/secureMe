@@ -63,28 +63,25 @@ void Daemon::run() {
 }
 
 void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
-    if (eventMsg == EVM_OPEN) {
+    user_regs_struct regs;
+    ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
+
+    if (eventMsg == SM_EVM_OPEN) {
         // open-caused trap
-        user_regs_struct regs;
-        ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
-        spdlog::info("[tid: {}] open's first arg: {}", tid, regs.rdi);
-        char buf[1000];
-        this->up->readStrFrom(tid, (char *)regs.rdi, buf, 1000);
+        char buf[SM_MAX_FILENAME];
+        this->up->readStrFrom(tid, (char *)regs.rdi, buf, SM_MAX_FILENAME);
         spdlog::info("open's filename: {}", buf);
         bool inWhitelist = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule("FileWhitelist"))->checkFile(buf);
         spdlog::info("inWhitelist: {}", inWhitelist);
     }
-    else if (eventMsg == EVM_CONNECT) {
+    else if (eventMsg == SM_EVM_CONNECT) {
         // connect-caused trap
-        user_regs_struct regs;
-        ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
         const int size = regs.rdx;
         spdlog::info("sockaddr length: {}", size);
         char *buf = new char(size);
         this->up->readBytesFrom(tid, (char *)regs.rsi, buf, size);
         const struct sockaddr *sa = reinterpret_cast<struct sockaddr *>(buf);
-        if (sa->sa_family == AF_INET)
-        {
+        if (sa->sa_family == AF_INET) {
             const struct sockaddr_in *sa_in = reinterpret_cast<const struct sockaddr_in *>(sa);
             const in_addr_t ipv4 = sa_in->sin_addr.s_addr;
             spdlog::debug("NetworkMonitor: catch connect {}", ipv4);

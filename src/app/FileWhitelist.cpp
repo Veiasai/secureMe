@@ -12,7 +12,7 @@ FileWhitelist::FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::
 void FileWhitelist::initRules(){
     for (auto filenameRe : this->ruleNode) {
         const std::string filename = this->handleEscape(filenameRe.as<std::string>());
-        seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(EVM_OPEN), SCMP_SYS(open), 0);
+        seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_OPEN), SCMP_SYS(open), 0);
     }
 }
 
