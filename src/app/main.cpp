@@ -85,8 +85,6 @@ ArgInfo parseArgs(int argc, char **argv) {
 }
 
 void runTarget(const ArgInfo &argInfo, const std::shared_ptr<rule::RuleManager> &rulemgr) {
-    rulemgr->applyRules();
-
     // redirect
     if (!argInfo.targetlogPath.empty()) {
         int targetlogFd = open(argInfo.targetlogPath.c_str(), O_RDWR | O_CREAT | O_APPEND, 0666);
@@ -104,8 +102,10 @@ void runTarget(const ArgInfo &argInfo, const std::shared_ptr<rule::RuleManager> 
     args.push_back(nullptr);
 
     ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
-
     char **command = &args[0];
+
+    rulemgr->applyRules();
+
     // execv after TRACEME will trigger a SIGTRAP delivered automatically
     execv(argInfo.targetPath.c_str(), command);
     assert(0);
