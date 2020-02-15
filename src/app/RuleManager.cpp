@@ -12,9 +12,9 @@ RuleManager::RuleManager(const std::string &configPath, const std::shared_ptr<ut
     const YAML::Node config = YAML::LoadFile(configPath);
 
     // order matters
-    this->modules["BasicRule"] = std::make_shared<BasicRule>(this->ctxp, config["rules"], up);
-    this->modules["FileWhitelist"] = std::make_shared<FileWhitelist>(this->ctxp, config["plugins"]["filewhitelist"], up);
-    this->modules["NetworkMonitor"] = std::make_shared<NetworkMonitor>(this->ctxp, config["plugins"]["network"], up);
+    this->modules[SM_BASIC_RULE] = std::make_shared<BasicRule>(this->ctxp, config["rules"], up);
+    this->modules[SM_FILE_WHITELIST] = std::make_shared<FileWhitelist>(this->ctxp, config["plugins"]["filewhitelist"], up);
+    this->modules[SM_NETWORK_MONITOR] = std::make_shared<NetworkMonitor>(this->ctxp, config["plugins"]["network"], up);
 }
 
 void RuleManager::applyRules() const {

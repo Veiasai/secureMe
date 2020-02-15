@@ -6,6 +6,10 @@
 #define SM_EVM_BASIC_BASE   100
 
 // rule module macro
+#define SM_BASIC_RULE       "BasicRule"
+#define SM_FILE_WHITELIST   "FileWhitelist"
+#define SM_NETWORK_MONITOR  "NetworkMonitor"
+
 #define SM_IN_FILE_WHITELIST(x)     (((x) >= 10) && ((x) < 20))
 #define SM_IN_NETWORK_MONITOR(x)    (((x) >= 20) && ((x) < 30))
 #define SM_IN_BASIC_RULE(x)         ((x) >= 100)
