@@ -44,6 +44,9 @@ BasicRule::BasicRule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ru
             this->rules.emplace_back(sysnum, id, pSpecs);
         }
     }
+
+    spdlog::info("init BasicRule module");
+    this->initRules();
 }
 
 void BasicRule::initRules() {

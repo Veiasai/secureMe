@@ -11,18 +11,10 @@ RuleManager::RuleManager(const std::string &configPath, const std::shared_ptr<ut
     this->ctxp.reset(new scmp_filter_ctx(seccomp_init(SCMP_ACT_ALLOW)));
     const YAML::Node config = YAML::LoadFile(configPath);
 
+    // order matters
     this->modules["BasicRule"] = std::make_shared<BasicRule>(this->ctxp, config["rules"], up);
     this->modules["FileWhitelist"] = std::make_shared<FileWhitelist>(this->ctxp, config["plugins"]["filewhitelist"], up);
     this->modules["NetworkMonitor"] = std::make_shared<NetworkMonitor>(this->ctxp, config["plugins"]["network"], up);
-
-    this->initRules();
-}
-
-void RuleManager::initRules() {
-    for (auto it = this->modules.begin(); it != this->modules.end(); it++) {
-        spdlog::info("init rule module: {}", it->first);
-        it->second->initRules();
-    }
 }
 
 void RuleManager::applyRules() const {

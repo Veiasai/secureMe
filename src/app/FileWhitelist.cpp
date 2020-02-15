@@ -9,6 +9,9 @@ FileWhitelist::FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::
     for (const auto &rule : ruleNode.as<std::vector<std::string>>()) {
         this->regFiles.emplace_back(rule);
     }
+ 
+    spdlog::info("init FileWhitelist module");
+    this->initRules();
 }
 
 void FileWhitelist::initRules(){

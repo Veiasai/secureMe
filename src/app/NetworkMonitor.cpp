@@ -17,6 +17,9 @@ NetworkMonitor::NetworkMonitor(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML
         }
         this->ipv4WhiteList.insert(ipv4);
     }
+ 
+    spdlog::info("init NetworkMonitor module");
+    this->initRules();
 }
 
 void NetworkMonitor::initRules() {
