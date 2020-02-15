@@ -18,15 +18,24 @@ void FileWhitelist::initRules(){
     seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_OPEN), SCMP_SYS(open), 0);
 }
 
-bool FileWhitelist::checkFile(const std::string &filename) {
-    for (std::regex regFile : this->regFiles) {
-        if (std::regex_match(filename, regFile)) {
-            return true;
+bool FileWhitelist::check(const long eventMsg, const user_regs_struct &regs, const int tid) {
+    if (eventMsg == SM_EVM_OPEN) {
+        // open-caused trap
+        char filename[SM_MAX_FILENAME];
+        this->up->readStrFrom(tid, (char *)regs.rdi, filename, SM_MAX_FILENAME);
+        spdlog::info("open's filename: {}", filename);
+
+        for (std::regex regFile : this->regFiles) {
+            if (std::regex_match(filename, regFile)) {
+                return true;
+            }
         }
+        spdlog::critical("open file {}, which is not in whitelist", filename);
+        return false;
     }
-    spdlog::critical("open file {}, which is not in whitelist", filename);
-    return false;
+    // todo: openat
 }
+
 
 } // namespace rule
 } // namespace SAIL

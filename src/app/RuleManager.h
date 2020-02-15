@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include <sys/user.h>
 
 #include <seccomp.h>
 #include <spdlog/spdlog.h>
@@ -51,6 +52,7 @@ protected:
 public:
     RuleModule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up);
     virtual void initRules() = 0;
+    virtual bool check(const long eventMsg, const user_regs_struct &regs, const int tid) = 0;
 };
 
 }}

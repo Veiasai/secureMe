@@ -67,41 +67,22 @@ void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
     user_regs_struct regs;
     ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
 
-    if (eventMsg == SM_EVM_OPEN) {
-        // open-caused trap
-        char buf[SM_MAX_FILENAME];
-        this->up->readStrFrom(tid, (char *)regs.rdi, buf, SM_MAX_FILENAME);
-        spdlog::info("open's filename: {}", buf);
-        bool inWhitelist = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule("FileWhitelist"))->checkFile(buf);
-        spdlog::info("inWhitelist: {}", inWhitelist);
-        if (!inWhitelist) {
-            this->end();
-        }
+    bool doPassCheck;
+    if (SM_IN_BASIC_RULE(eventMsg)) {
+        doPassCheck = std::dynamic_pointer_cast<rule::BasicRule>(this->rulemgr->getModule("BasicRule"))->check(eventMsg, regs, tid);
     }
-    else if (eventMsg == SM_EVM_CONNECT) {
-        // connect-caused trap
-        const int size = regs.rdx;
-        spdlog::info("sockaddr length: {}", size);
-        char *buf = new char(size);
-        this->up->readBytesFrom(tid, (char *)regs.rsi, buf, size);
-        const struct sockaddr *sa = reinterpret_cast<struct sockaddr *>(buf);
-        if (sa->sa_family == AF_INET) {
-            const struct sockaddr_in *sa_in = reinterpret_cast<const struct sockaddr_in *>(sa);
-            const in_addr_t ipv4 = sa_in->sin_addr.s_addr;
-            spdlog::debug("NetworkMonitor: catch connect {}", ipv4);
-            bool inWhitelist = std::dynamic_pointer_cast<rule::NetworkMonitor>(this->rulemgr->getModule("NetworkMonitor"))->checkIPv4(ipv4);
-            spdlog::info("inWhitelist: {}", inWhitelist);
-            if (!inWhitelist) {
-               this->end();
-            }
-        }
+    else if (SM_IN_FILE_WHITELIST(eventMsg)) {
+        doPassCheck = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule("FileWhitelist"))->check(eventMsg, regs, tid);
     }
-    else if (eventMsg >= SM_EVM_BASIC_BASE) {
-        // basic-rule-caused trap
-        bool doPassCheck = std::dynamic_pointer_cast<rule::BasicRule>(this->rulemgr->getModule("BasicRule"))->checkRule(eventMsg - SM_EVM_BASIC_BASE, regs, tid);
-        if (!doPassCheck) {
-            this->end();
-        }
+    else if (SM_IN_NETWORK_MONITOR(eventMsg)) {
+        doPassCheck = std::dynamic_pointer_cast<rule::NetworkMonitor>(this->rulemgr->getModule("NetworkMonitor"))->check(eventMsg, regs, tid);
+    }
+    else {
+        assert(0);
+    }
+
+    if (!doPassCheck) {
+        this->end();
     }
 }
 

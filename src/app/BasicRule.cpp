@@ -91,8 +91,8 @@ void BasicRule::initRules() {
     }
 }
 
-bool BasicRule::checkRule(const int index, const user_regs_struct &regs, const int tid) {
-    const Rule rule = this->rules[index];
+bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const int tid) {
+    const Rule rule = this->rules[eventMsg - SM_EVM_BASIC_BASE];
     if (!rule.needExtraCheck) {
         // don't need extra check but still trapped in, which means an unwanted syscall
         spdlog::critical("basic rule {} is broke", rule.id);
@@ -212,7 +212,7 @@ bool BasicRule::checkRule(const int index, const user_regs_struct &regs, const i
             }
         }
     }
-    spdlog::info("all check pass");
+    spdlog::info("basic rule {}: all check pass", rule.id);
     return true;
 }
 }}
