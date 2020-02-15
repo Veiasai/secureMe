@@ -3,7 +3,9 @@
 
 namespace SAIL { namespace rule {
 
-FileWhitelist::FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode) : RuleModule(ctxp, ruleNode) {
+FileWhitelist::FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up) : 
+    RuleModule(ctxp, ruleNode, up) 
+{
     for (const auto &rule : ruleNode.as<std::vector<std::string>>()) {
         this->regFiles.emplace_back(rule);
     }

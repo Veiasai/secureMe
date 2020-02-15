@@ -2,36 +2,214 @@
 
 namespace SAIL { namespace rule {
 
-BasicRule::BasicRule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode) : RuleModule(ctxp, ruleNode) {}
-
-void BasicRule::initRules() {
-    for (auto rule : this->ruleNode) {
+BasicRule::BasicRule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up) : 
+    RuleModule(ctxp, ruleNode, up) 
+{
+    for (const auto &rule : ruleNode) {
         const int sysnum = rule["sysnum"].as<int>();
-        std::vector<struct scmp_arg_cmp> cmps;
-        for (auto spec : rule["specs"]) {
-            const unsigned int paraIndex = spec["paraIndex"].as<unsigned int>();
-            const std::string action = spec["action"].as<std::string>();
-            const scmp_datum_t value = spec["value"].as<scmp_datum_t>();
+        const int id = rule["id"].as<int>();
+        std::vector<struct scmp_arg_cmp> specs;
+        std::vector<struct ptrace_arg_cmp> pSpecs;
+        bool needExtraCheck = false;
+        if (rule["specs"].IsDefined()) {
+            for (auto spec : rule["specs"]) {
+                const unsigned int paraIndex = spec["paraIndex"].as<unsigned int>();
+                const std::string action = spec["action"].as<std::string>();
+                
+                // build pSpecs
+                if (action == "matchRe") {
+                    needExtraCheck = true;
+                    pSpecs.emplace_back(paraIndex, action, spec["value"].as<std::string>());
+                }
+                else if (action == "matchBytes") {
+                    needExtraCheck = true;
+                    pSpecs.emplace_back(paraIndex, action, spec["value"].as<std::vector<int>>());
+                }
+                else {
+                    // don't need extra check yet
+                    pSpecs.emplace_back(paraIndex, action, spec["value"].as<int>());
+                }
 
-            cmps.push_back((struct scmp_arg_cmp){paraIndex, this->cmpActionMap.at(action), value});
+                // build specs, potentially
+                if (!needExtraCheck) {
+                    const scmp_datum_t value = spec["value"].as<scmp_datum_t>();
+                    specs.push_back((struct scmp_arg_cmp){paraIndex, this->cmpActionMap.at(action), value});
+                }
+            }
         }
-        switch (cmps.size()) {
-            case 0:
-                seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(0), sysnum, 0);
-            case 1:
-                seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(0), sysnum, 1, cmps[0]);
-            case 2:
-                seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(0), sysnum, 2, cmps[0], cmps[1]);
-            case 3:
-                seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(0), sysnum, 3, cmps[0], cmps[1], cmps[2]);
-            case 4:
-                seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(0), sysnum, 4, cmps[0], cmps[1], cmps[2], cmps[3]);
-            case 5:
-                seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(0), sysnum, 5, cmps[0], cmps[1], cmps[2], cmps[3], cmps[4]);
-            case 6:
-                seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(0), sysnum, 6, cmps[0], cmps[1], cmps[2], cmps[3], cmps[4], cmps[5]);
+        if (!needExtraCheck) {
+            this->rules.emplace_back(sysnum, id, specs);
+        }
+        else {
+            this->rules.emplace_back(sysnum, id, pSpecs);
         }
     }
 }
 
+void BasicRule::initRules() {
+    int offset = 0;
+    for (Rule rule : this->rules) {
+        if (rule.needExtraCheck) {
+            seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 0);
+        }
+        else {
+            switch (rule.specs.size()) {
+                case 0:
+                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 0);
+                    spdlog::info("basic rule here***");
+                    break;
+                case 1:
+                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 1, 
+                        rule.specs[0]);
+                    break;
+                case 2:
+                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 2, 
+                        rule.specs[0], rule.specs[1]);
+                    break;
+                case 3:
+                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 3, 
+                        rule.specs[0], rule.specs[1], rule.specs[2]);
+                    break;
+                case 4:
+                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 4, 
+                        rule.specs[0], rule.specs[1], rule.specs[2], rule.specs[3]);
+                    break;
+                case 5:
+                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 5, 
+                        rule.specs[0], rule.specs[1], rule.specs[2], rule.specs[3], rule.specs[4]);
+                    break;
+                case 6:
+                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 6, 
+                        rule.specs[0], rule.specs[1], rule.specs[2], rule.specs[3], rule.specs[4], rule.specs[5]);
+                    break;
+            }
+        }
+        offset++;
+    }
+}
+
+bool BasicRule::checkRule(const int index, const user_regs_struct &regs, const int tid) {
+    const Rule rule = this->rules[index];
+    if (!rule.needExtraCheck) {
+        // don't need extra check but still trapped in, which means an unwanted syscall
+        spdlog::critical("basic rule {} is broke", rule.id);
+        return false;
+    }
+
+    // start extra check
+    for (const auto &pSpec : rule.pSpecs) {
+        unsigned long long reg;
+        switch (pSpec.paraIndex) {
+            case 1:
+                reg = regs.rdi;
+                break;
+            case 2:
+                reg = regs.rsi;
+                break;
+            case 3:
+                reg = regs.rdx;
+                break;
+            case 4:
+                reg = regs.rcx;
+                break;
+            case 5:
+                reg = regs.r8;
+                break;
+            case 6:
+                reg = regs.r9;
+                break;
+        }
+
+        if (pSpec.action == "matchRe") {
+            // data configured in rule
+            const std::regex pattern(pSpec.strValue);
+            
+            // data to be checked
+            char buf[SM_MAX_STRING_SIZE];
+            this->up->readStrFrom(tid, (char *)reg, buf, SM_MAX_STRING_SIZE);
+            spdlog::info("matchRe: {}", std::string(buf));
+
+            // check
+            if (std::regex_match(std::string(buf), pattern)) {
+                spdlog::critical("basic rule {} is broke", rule.id);
+                return false;
+            }
+            // spdlog::info("regular expression mismtach");
+        }
+        else if (pSpec.action == "matchBytes") {
+            // data configured in rule
+            std::vector<unsigned char> bytes;
+            for (const int byte : pSpec.bytesValue) {
+                bytes.push_back((unsigned char)(byte));
+            }
+
+            // data to be checked
+            char buf[SM_MAX_STRING_SIZE];
+            this->up->readStrFrom(tid, (char *)reg, buf, SM_MAX_STRING_SIZE);
+            // spdlog::info("matchRe: {}", std::string(buf));
+
+            // check (only support bytes in string)
+            const int bufSize = strlen(buf);
+            const int bytesSize = bytes.size();
+            if (bytesSize > bufSize) {
+                spdlog::info("bytes configured in rule is longer, mismatch");
+                // return true;
+                continue;
+            }
+
+            for (int i = 0; i <= bufSize - bytesSize; i++) {
+                for (int j = 0; j < bytesSize; j++) {
+                    // mismatch here
+                    if (buf[i + j] != bytes[j])
+                        break;
+
+                    // there isn't any mismatch
+                    if (j == bytesSize - 1) {
+                        spdlog::critical("basic rule {} is broke", rule.id);
+                        return false;
+                    }
+                }
+            }
+            spdlog::info("bytes configured in rule cannot match any part of buf");
+        }
+        else if (pSpec.action == "equal") {
+            if (reg == pSpec.intValue) {
+                spdlog::critical("basic rule {} is broke", rule.id);
+                return false;
+            }
+        }
+        else if (pSpec.action == "notEqual") {
+            if (reg != pSpec.intValue) {
+                spdlog::critical("basic rule {} is broke", rule.id);
+                return false;
+            }
+        }
+        else if (pSpec.action == "greater") {
+            if (reg > pSpec.intValue) {
+                spdlog::critical("basic rule {} is broke", rule.id);
+                return false;
+            }
+        }
+        else if (pSpec.action == "notGreater") {
+            if (reg <= pSpec.intValue) {
+                spdlog::critical("basic rule {} is broke", rule.id);
+                return false;
+            }
+        }
+        else if (pSpec.action == "less") {
+            if (reg < pSpec.intValue) {
+                spdlog::critical("basic rule {} is broke", rule.id);
+                return false;
+            }
+        }
+        else if (pSpec.action == "notLess") {
+            if (reg >= pSpec.intValue) {
+                spdlog::critical("basic rule {} is broke", rule.id);
+                return false;
+            }
+        }
+    }
+    spdlog::info("all check pass");
+    return true;
+}
 }}

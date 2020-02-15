@@ -2,7 +2,9 @@
 
 namespace SAIL { namespace rule {
 
-NetworkMonitor::NetworkMonitor(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode) : RuleModule(ctxp, ruleNode) {
+NetworkMonitor::NetworkMonitor(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up) : 
+    RuleModule(ctxp, ruleNode, up) 
+{
     for (const auto &ipStr : ruleNode["ipv4"].as<std::vector<std::string>>()) {
         in_addr_t ipv4 = 0;
         int rc = inet_pton(AF_INET, ipStr.c_str(), &(ipv4));

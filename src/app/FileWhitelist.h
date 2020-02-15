@@ -12,7 +12,7 @@ private:
     std::vector<std::regex> regFiles;
 
 public:
-    FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode);
+    FileWhitelist(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up);
     void initRules() override;
     std::string handleEscape(std::string regStr);
     bool checkFile(const std::string &filename);

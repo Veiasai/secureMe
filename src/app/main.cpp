@@ -115,15 +115,15 @@ int main(int argc, char **argv)
 {
     const ArgInfo argInfo = parseArgs(argc, argv);
 
+    std::shared_ptr<util::Utils> up = std::make_shared<util::Utils>();
     // init rule manager
-    std::shared_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(argInfo.configPath);
+    std::shared_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(argInfo.configPath, up);
 
     const pid_t child = fork();
     assert(child >= 0);
     if (child == 0) {
         runTarget(argInfo, rulemgr);
     }
-    std::shared_ptr<util::Utils> up = std::make_shared<util::Utils>();
     std::unique_ptr<core::Daemon> daemon = std::make_unique<core::Daemon>(child, rulemgr, up);
     daemon->run();
 

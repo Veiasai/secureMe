@@ -2,6 +2,7 @@
 #include <sys/socket.h>
 
 #include "Daemon.h"
+#include "BasicRule.h"
 #include "FileWhitelist.h"
 #include "NetworkMonitor.h"
 
@@ -93,6 +94,13 @@ void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
             if (!inWhitelist) {
                this->end();
             }
+        }
+    }
+    else if (eventMsg >= SM_EVM_BASIC_BASE) {
+        // basic-rule-caused trap
+        bool doPassCheck = std::dynamic_pointer_cast<rule::BasicRule>(this->rulemgr->getModule("BasicRule"))->checkRule(eventMsg - SM_EVM_BASIC_BASE, regs, tid);
+        if (!doPassCheck) {
+            this->end();
         }
     }
 }
