@@ -59,7 +59,6 @@ void BasicRule::initRules() {
             switch (rule.specs.size()) {
                 case 0:
                     seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 0);
-                    spdlog::info("basic rule here***");
                     break;
                 case 1:
                     seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 1, 
@@ -95,8 +94,7 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
     const Rule rule = this->rules[eventMsg - SM_EVM_BASIC_BASE];
     if (!rule.needExtraCheck) {
         // don't need extra check but still trapped in, which means an unwanted syscall
-        spdlog::critical("basic rule {} is broke", rule.id);
-        return false;
+        goto end;
     }
 
     // start extra check
@@ -134,8 +132,7 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
 
             // check
             if (std::regex_match(std::string(buf), pattern)) {
-                spdlog::critical("basic rule {} is broke", rule.id);
-                return false;
+                goto end;
             }
             // spdlog::info("regular expression mismtach");
         }
@@ -168,51 +165,37 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
 
                     // there isn't any mismatch
                     if (j == bytesSize - 1) {
-                        spdlog::critical("basic rule {} is broke", rule.id);
-                        return false;
+                        goto end;
                     }
                 }
             }
             spdlog::info("bytes configured in rule cannot match any part of buf");
         }
-        else if (pSpec.action == "equal") {
-            if (reg == pSpec.intValue) {
-                spdlog::critical("basic rule {} is broke", rule.id);
-                return false;
-            }
+        else if (pSpec.action == "equal" && reg == pSpec.intValue) {
+            goto end;
         }
-        else if (pSpec.action == "notEqual") {
-            if (reg != pSpec.intValue) {
-                spdlog::critical("basic rule {} is broke", rule.id);
-                return false;
-            }
+        else if (pSpec.action == "notEqual" && reg != pSpec.intValue) {
+            goto end;
         }
-        else if (pSpec.action == "greater") {
-            if (reg > pSpec.intValue) {
-                spdlog::critical("basic rule {} is broke", rule.id);
-                return false;
-            }
+        else if (pSpec.action == "greater" && reg > pSpec.intValue) {
+            goto end;
         }
-        else if (pSpec.action == "notGreater") {
-            if (reg <= pSpec.intValue) {
-                spdlog::critical("basic rule {} is broke", rule.id);
-                return false;
-            }
+        else if (pSpec.action == "notGreater" && reg <= pSpec.intValue) {
+            goto end;
         }
-        else if (pSpec.action == "less") {
-            if (reg < pSpec.intValue) {
-                spdlog::critical("basic rule {} is broke", rule.id);
-                return false;
-            }
+        else if (pSpec.action == "less" && reg < pSpec.intValue) {
+            goto end;
         }
-        else if (pSpec.action == "notLess") {
-            if (reg >= pSpec.intValue) {
-                spdlog::critical("basic rule {} is broke", rule.id);
-                return false;
-            }
+        else if (pSpec.action == "notLess" && reg >= pSpec.intValue) {
+            goto end;
         }
     }
     spdlog::info("basic rule {}: all check pass", rule.id);
     return true;
+
+end:
+    spdlog::critical("basic rule {} is broke", rule.id);
+    return false;
 }
+
 }}
