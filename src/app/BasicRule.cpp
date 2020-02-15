@@ -198,4 +198,5 @@ end:
     return false;
 }
 
-}}
+} // namespace rule
+} // namespace SAIL

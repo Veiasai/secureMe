@@ -1,5 +1,4 @@
 #include "FileWhitelist.h"
-#include <fcntl.h>                                            
 
 namespace SAIL { namespace rule {
 
@@ -35,7 +34,6 @@ bool FileWhitelist::check(const long eventMsg, const user_regs_struct &regs, con
     }
     // todo: openat
 }
-
 
 } // namespace rule
 } // namespace SAIL

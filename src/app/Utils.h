@@ -12,4 +12,5 @@ public:
     int readBytesFrom(int tid, const char *p, char *buf, size_t s);
 };
 
-}}
+} // namespace util
+} // namespace SAIL

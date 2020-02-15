@@ -1,18 +1,11 @@
 #include <iostream>
 #include <fcntl.h>
-#include <unistd.h>
-#include <cassert>
-#include <memory>
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <sys/ptrace.h>
 
 #include <cxxopts.hpp>
 #include <yaml-cpp/yaml.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#include "RuleManager.h"
 #include "Daemon.h"
 
 using namespace SAIL;

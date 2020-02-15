@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "RuleManager.h"
 #include "BasicRule.h"
 #include "FileWhitelist.h"
@@ -26,7 +24,7 @@ std::shared_ptr<RuleModule> RuleManager::getModule(const std::string &moduleName
     return this->modules[moduleName];
 }
 
-RuleModule::RuleModule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up) : 
-    ctxp(ctxp), ruleNode(ruleNode), up(up) {}
+RuleModule::RuleModule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up) : ctxp(ctxp), ruleNode(ruleNode), up(up) {}
 
-}}
+} // namespace rule
+} // namespace SAIL

@@ -1,6 +1,3 @@
-#include <sys/user.h>
-#include <sys/socket.h>
-
 #include "Daemon.h"
 #include "BasicRule.h"
 #include "FileWhitelist.h"
@@ -90,4 +87,5 @@ void Daemon::end() {
     kill(this->child, SIGKILL);
 }
 
-}}
+} // namespace core
+} // namespace SAIL

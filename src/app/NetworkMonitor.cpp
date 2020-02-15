@@ -33,7 +33,7 @@ bool NetworkMonitor::check(const long eventMsg, const user_regs_struct &regs, co
     char *buf = new char(size);
     this->up->readBytesFrom(tid, (char *)regs.rsi, buf, size);
     const struct sockaddr *sa = reinterpret_cast<struct sockaddr *>(buf);
-    
+
     if (sa->sa_family == AF_INET) {
         const struct sockaddr_in *sa_in = reinterpret_cast<const struct sockaddr_in *>(sa);
         const in_addr_t ipv4 = sa_in->sin_addr.s_addr;
@@ -51,4 +51,5 @@ bool NetworkMonitor::check(const long eventMsg, const user_regs_struct &regs, co
     }
 }
 
-}}
+} // namespace rule
+} // namespace SAIL

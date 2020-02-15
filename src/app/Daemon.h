@@ -6,6 +6,8 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <sys/ptrace.h>
+#include <sys/user.h>
+#include <sys/socket.h>
 
 #include <spdlog/spdlog.h>
 
@@ -28,4 +30,5 @@ public:
     void end();
 };
 
-}}
+} // namespace core
+} // namespace SAIL

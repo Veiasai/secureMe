@@ -1,6 +1,7 @@
 #pragma once
 
 #include <regex>
+#include <fcntl.h>                                            
 
 #include "RuleManager.h"
 

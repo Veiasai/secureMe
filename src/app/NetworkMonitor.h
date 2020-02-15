@@ -18,4 +18,5 @@ public:
     bool check(const long eventMsg, const user_regs_struct &regs, const int tid) override;
 };
 
-}}
+} // namespace rule
+} // namespace SAIL

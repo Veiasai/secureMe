@@ -37,4 +37,5 @@ int Utils::readBytesFrom(int tid, const char *p, char *buf, size_t s)
     return 0;
 }
 
-}}
+} // namespace util
+} // namespace SAIL

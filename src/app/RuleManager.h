@@ -55,4 +55,5 @@ public:
     virtual bool check(const long eventMsg, const user_regs_struct &regs, const int tid) = 0;
 };
 
-}}
+} // namespace rule
+} // namespace SAIL
