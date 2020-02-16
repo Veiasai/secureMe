@@ -1,5 +1,5 @@
 project(SecureMe)
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.7)
 
 add_definitions(-std=c++14) 
 set(CMAKE_BUILD_TYPE "Debug")

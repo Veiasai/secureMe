@@ -20,3 +20,8 @@ ExternalProject_Add(libseccomp
 
 set(SECCOMP_LIB ${LIBSECCOMP_ROOT}/lib/libseccomp.so PARENT_SCOPE)
 set(SECCOMP_INCLUDE_DIR ${LIBSECCOMP_ROOT}/include PARENT_SCOPE)
+
+add_subdirectory(cxxopts)
+add_subdirectory(spdlog)
+add_subdirectory(yaml-cpp)
+add_subdirectory(googletest)
