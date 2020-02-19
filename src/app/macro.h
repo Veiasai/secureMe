@@ -1,5 +1,7 @@
 #pragma once
 
+namespace SAIL {
+
 // event message macro
 #define SM_EVM_OPEN         10
 #define SM_EVM_CONNECT      20
@@ -19,3 +21,5 @@
 
 // max string size
 #define SM_MAX_STRING_SIZE  1024
+
+} // namespace SAIL
