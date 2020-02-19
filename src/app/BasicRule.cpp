@@ -121,55 +121,11 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
                 break;
         }
 
-        if (pSpec.action == "matchRe") {
-            // data configured in rule
-            const std::regex pattern(pSpec.strValue);
-            
-            // data to be checked
-            char buf[SM_MAX_STRING_SIZE];
-            this->up->readStrFrom(tid, (char *)reg, buf, SM_MAX_STRING_SIZE);
-            spdlog::info("matchRe: {}", std::string(buf));
-
-            // check
-            if (std::regex_match(std::string(buf), pattern)) {
-                goto end;
-            }
-            // spdlog::info("regular expression mismtach");
+        if (pSpec.action == "matchRe" && !this->matchRe(pSpec, reg, tid)) {
+            goto end;
         }
-        else if (pSpec.action == "matchBytes") {
-            // data configured in rule
-            std::vector<unsigned char> bytes;
-            for (const int byte : pSpec.bytesValue) {
-                bytes.push_back((unsigned char)(byte));
-            }
-
-            // data to be checked
-            char buf[SM_MAX_STRING_SIZE];
-            this->up->readStrFrom(tid, (char *)reg, buf, SM_MAX_STRING_SIZE);
-            // spdlog::info("matchRe: {}", std::string(buf));
-
-            // check (only support bytes in string)
-            const int bufSize = strlen(buf);
-            const int bytesSize = bytes.size();
-            if (bytesSize > bufSize) {
-                spdlog::info("bytes configured in rule is longer, mismatch");
-                // return true;
-                continue;
-            }
-
-            for (int i = 0; i <= bufSize - bytesSize; i++) {
-                for (int j = 0; j < bytesSize; j++) {
-                    // mismatch here
-                    if (buf[i + j] != bytes[j])
-                        break;
-
-                    // there isn't any mismatch
-                    if (j == bytesSize - 1) {
-                        goto end;
-                    }
-                }
-            }
-            spdlog::info("bytes configured in rule cannot match any part of buf");
+        else if (pSpec.action == "matchBytes" && !this->matchBytes(pSpec, reg, tid)) {
+            goto end;
         }
         else if (pSpec.action == "equal" && reg == pSpec.intValue) {
             goto end;
@@ -189,6 +145,9 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
         else if (pSpec.action == "notLess" && reg >= pSpec.intValue) {
             goto end;
         }
+        else {
+            assert(0);
+        }
     }
     spdlog::info("basic rule {}: all check pass", rule.id);
     return true;
@@ -196,6 +155,59 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
 end:
     spdlog::critical("basic rule {} is broke", rule.id);
     return false;
+}
+
+bool BasicRule::matchRe(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid) {
+    // data configured in rule
+    const std::regex pattern(pSpec.strValue);
+    
+    // data to be checked
+    char buf[SM_MAX_STRING_SIZE];
+    this->up->readStrFrom(tid, (char *)reg, buf, SM_MAX_STRING_SIZE);
+    spdlog::info("matchRe: {}", std::string(buf));
+
+    // check
+    if (std::regex_match(std::string(buf), pattern)) {
+        return false;
+    }
+    spdlog::info("regular expression mismtach");
+    return true;
+}
+
+bool BasicRule::matchBytes(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid) {
+    // data configured in rule
+    std::vector<unsigned char> bytes;
+    for (const int byte : pSpec.bytesValue) {
+        bytes.push_back((unsigned char)(byte));
+    }
+
+    // data to be checked
+    char buf[SM_MAX_STRING_SIZE];
+    this->up->readStrFrom(tid, (char *)reg, buf, SM_MAX_STRING_SIZE);
+    // spdlog::info("matchRe: {}", std::string(buf));
+
+    // check (only support bytes in string)
+    const int bufSize = strlen(buf);
+    const int bytesSize = bytes.size();
+    if (bytesSize > bufSize) {
+        spdlog::info("bytes configured in rule is longer, mismatch");
+        return true;
+    }
+
+    for (int i = 0; i <= bufSize - bytesSize; i++) {
+        for (int j = 0; j < bytesSize; j++) {
+            // mismatch here
+            if (buf[i + j] != bytes[j])
+                break;
+
+            // there isn't any mismatch
+            if (j == bytesSize - 1) {
+                return false;
+            }
+        }
+    }
+    spdlog::info("bytes configured in rule cannot match any part of buf");
+    return true;
 }
 
 } // namespace rule
