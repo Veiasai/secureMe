@@ -5,9 +5,8 @@
 
 namespace SAIL { namespace rule {
 
-RuleManager::RuleManager(const std::string &configPath, const std::shared_ptr<util::Utils> &up) : up(up) {
+RuleManager::RuleManager(const YAML::Node &config, const std::shared_ptr<util::Utils> &up) : up(up) {
     this->ctxp.reset(new scmp_filter_ctx(seccomp_init(SCMP_ACT_ALLOW)));
-    const YAML::Node config = YAML::LoadFile(configPath);
 
     // order matters
     this->modules[SM_BASIC_RULE] = std::make_shared<BasicRule>(this->ctxp, config["rules"], up);

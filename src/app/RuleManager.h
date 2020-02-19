@@ -23,7 +23,7 @@ private:
     const std::shared_ptr<util::Utils> up;
 
 public:
-    RuleManager(const std::string &configPath, const std::shared_ptr<util::Utils> &up);
+    RuleManager(const YAML::Node &config, const std::shared_ptr<util::Utils> &up);
     void applyRules() const;
     std::shared_ptr<RuleModule> getModule(const std::string &moduleName);
 };

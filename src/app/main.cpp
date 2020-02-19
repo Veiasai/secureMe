@@ -110,7 +110,8 @@ int main(int argc, char **argv)
 
     std::shared_ptr<util::Utils> up = std::make_shared<util::Utils>();
     // init rule manager
-    std::shared_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(argInfo.configPath, up);
+    const YAML::Node config = YAML::LoadFile(argInfo.configPath);
+    std::shared_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(config, up);
 
     const pid_t child = fork();
     assert(child >= 0);
