@@ -1,18 +1,12 @@
 #include <iostream>
 #include <fcntl.h>
-#include <unistd.h>
-#include <cassert>
-#include <memory>
-#include <sys/wait.h>
-#include <sys/types.h>
-#include <sys/ptrace.h>
 
 #include <cxxopts.hpp>
 #include <yaml-cpp/yaml.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-#include "RuleManager.h"
+#include "Daemon.h"
 
 using namespace SAIL;
 
@@ -83,12 +77,7 @@ ArgInfo parseArgs(int argc, char **argv) {
     return argInfo;
 }
 
-void runTarget(const ArgInfo &argInfo) {
-    // init rule manager
-    std::unique_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(argInfo.configPath);
-
-    rulemgr->applyRules();
-
+void runTarget(const ArgInfo &argInfo, const std::shared_ptr<rule::RuleManager> &rulemgr) {
     // redirect
     if (!argInfo.targetlogPath.empty()) {
         int targetlogFd = open(argInfo.targetlogPath.c_str(), O_RDWR | O_CREAT | O_APPEND, 0666);
@@ -106,42 +95,31 @@ void runTarget(const ArgInfo &argInfo) {
     args.push_back(nullptr);
 
     ptrace(PTRACE_TRACEME, 0, nullptr, nullptr);
-
     char **command = &args[0];
+
+    rulemgr->applyRules();
+
     // execv after TRACEME will trigger a SIGTRAP delivered automatically
     execv(argInfo.targetPath.c_str(), command);
     assert(0);
-}
-
-void runDaemon(const pid_t child) {
-    int status;
-    // catch the execv-caused SIGTRAP here
-    waitpid(child, &status, WSTOPPED);
-    assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
-    ptrace(PTRACE_SETOPTIONS, child, nullptr, PTRACE_O_TRACESECCOMP);
-    ptrace(PTRACE_CONT, child, nullptr, nullptr);
-
-    while (true) {
-        waitpid(child, &status, 0);
-        spdlog::info("target return with status: {:x}", status);
-        if (WIFEXITED(status)) {
-            spdlog::info("target exit");
-            break;
-        }
-        ptrace(PTRACE_CONT, child, nullptr, nullptr);
-    }
 }
 
 int main(int argc, char **argv)
 {
     const ArgInfo argInfo = parseArgs(argc, argv);
 
+    std::shared_ptr<util::Utils> up = std::make_shared<util::Utils>();
+    // init rule manager
+    const YAML::Node config = YAML::LoadFile(argInfo.configPath);
+    std::shared_ptr<rule::RuleManager> rulemgr = std::make_unique<rule::RuleManager>(config, up);
+
     const pid_t child = fork();
     assert(child >= 0);
     if (child == 0) {
-        runTarget(argInfo);
+        runTarget(argInfo, rulemgr);
     }
-    runDaemon(child);
+    std::unique_ptr<core::Daemon> daemon = std::make_unique<core::Daemon>(child, rulemgr, up);
+    daemon->run();
 
     return 0;
 }
