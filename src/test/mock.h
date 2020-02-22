@@ -27,12 +27,12 @@ public:
 
 class MockFileWhitelist : public FileWhitelist {
 public:
-
+    MOCK_METHOD(bool, check, (const long eventMsg, const user_regs_struct &regs, const int tid), (override));
 };
 
 class MockNetworkMonitor : public NetworkMonitor {
 public:
-
+    MOCK_METHOD(bool, check, (const long eventMsg, const user_regs_struct &regs, const int tid), (override));
 };
 
 class MockUtils : public Utils {
