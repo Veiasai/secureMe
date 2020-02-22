@@ -6,16 +6,7 @@
 namespace SAIL { namespace core {
 
 Daemon::Daemon(const pid_t child, const std::shared_ptr<rule::RuleManager> &rulemgr, const std::shared_ptr<util::Utils> &up) 
-    : child(child), rulemgr(rulemgr), up(up) 
-{
-    int status;
-    // catch the execv-caused SIGTRAP here
-    waitpid(this->child, &status, WSTOPPED);
-    assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
-    const long ptraceOptions = PTRACE_O_TRACECLONE | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACESECCOMP;
-    ptrace(PTRACE_SETOPTIONS, this->child, nullptr, ptraceOptions);
-    ptrace(PTRACE_CONT, this->child, nullptr, nullptr);
-}
+    : child(child), rulemgr(rulemgr), up(up) {}
 
 static bool isEvent(int status, int event)
 {
@@ -31,6 +22,16 @@ static bool isNewThread(int status)
 {
     // new thread will start from stopped state cause by SIGSTOP
     return (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP);
+}
+
+void Daemon::setOptions() {
+    int status;
+    // catch the execv-caused SIGTRAP here
+    waitpid(this->child, &status, WSTOPPED);
+    assert(WIFSTOPPED(status) && WSTOPSIG(status) == SIGTRAP);
+    const long ptraceOptions = PTRACE_O_TRACECLONE | PTRACE_O_TRACEFORK | PTRACE_O_TRACEVFORK | PTRACE_O_TRACESECCOMP;
+    ptrace(PTRACE_SETOPTIONS, this->child, nullptr, ptraceOptions);
+    ptrace(PTRACE_CONT, this->child, nullptr, nullptr);
 }
 
 void Daemon::run() {
