@@ -8,8 +8,8 @@ namespace SAIL { namespace util {
 class Utils
 {
 public:
-    int readStrFrom(int tid, const char *p, char *buf, size_t s);
-    int readBytesFrom(int tid, const char *p, char *buf, size_t s);
+    virtual int readStrFrom(int tid, const char *p, char *buf, size_t s);
+    virtual int readBytesFrom(int tid, const char *p, char *buf, size_t s);
 };
 
 } // namespace util

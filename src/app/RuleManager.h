@@ -24,8 +24,8 @@ private:
 
 public:
     RuleManager(const YAML::Node &config, const std::shared_ptr<util::Utils> &up);
-    void applyRules() const;
-    std::shared_ptr<RuleModule> getModule(const std::string &moduleName);
+    virtual void applyRules() const;
+    virtual std::shared_ptr<RuleModule> getModule(const std::string &moduleName);
 };
 
 class RuleModule

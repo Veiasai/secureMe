@@ -41,10 +41,10 @@ private:
 
 public:
     BasicRule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up);
-    void initRules() override;
-    bool check(const long eventMsg, const user_regs_struct &regs, const int tid) override;
-    bool matchRe(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid);
-    bool matchBytes(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid);
+    virtual void initRules() override;
+    virtual bool check(const long eventMsg, const user_regs_struct &regs, const int tid) override;
+    virtual bool matchRe(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid);
+    virtual bool matchBytes(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid);
 };
 
 } // namespace rule
