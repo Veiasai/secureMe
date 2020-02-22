@@ -1,5 +1,7 @@
 aux_source_directory(app APP_DIR)
+aux_source_directory(app TEST_DIR)
 aux_source_directory(test TEST_DIR)
+list(REMOVE_ITEM TEST_DIR app/main.cpp)
 
 add_executable(secureme ${APP_DIR})
 add_executable(smtest ${TEST_DIR})
