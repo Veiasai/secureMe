@@ -40,6 +40,7 @@ private:
     std::vector<Rule> rules;
 
 public:
+    BasicRule() {}
     BasicRule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up);
     virtual void initRules() override;
     virtual bool check(const long eventMsg, const user_regs_struct &regs, const int tid) override;

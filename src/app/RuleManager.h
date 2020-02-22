@@ -20,9 +20,10 @@ class RuleManager
 private:
     std::shared_ptr<scmp_filter_ctx> ctxp;
     std::map<std::string, std::shared_ptr<RuleModule>> modules;
-    const std::shared_ptr<util::Utils> up;
+    std::shared_ptr<util::Utils> up;
 
 public:
+    RuleManager() {}
     RuleManager(const YAML::Node &config, const std::shared_ptr<util::Utils> &up);
     virtual void applyRules() const;
     virtual std::shared_ptr<RuleModule> getModule(const std::string &moduleName);
@@ -50,6 +51,7 @@ protected:
     };
 
 public:
+    RuleModule() {}
     RuleModule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up);
     virtual void initRules() = 0;
     virtual bool check(const long eventMsg, const user_regs_struct &regs, const int tid) = 0;
