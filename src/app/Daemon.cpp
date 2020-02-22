@@ -63,7 +63,7 @@ void Daemon::run() {
 
 void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
     user_regs_struct regs;
-    ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
+    this->up->getRegs(tid, regs);
 
     bool doPassCheck;
     if (SM_IN_BASIC_RULE(eventMsg)) {

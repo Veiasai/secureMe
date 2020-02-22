@@ -37,5 +37,9 @@ int Utils::readBytesFrom(int tid, const char *p, char *buf, size_t s)
     return 0;
 }
 
+int Utils::getRegs(int tid, user_regs_struct &regs) {
+    return ptrace(PTRACE_GETREGS, tid, nullptr, regs);
+}
+
 } // namespace util
 } // namespace SAIL
