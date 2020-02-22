@@ -19,8 +19,18 @@ void RuleManager::applyRules() const {
 }
 
 std::shared_ptr<RuleModule> RuleManager::getModule(const std::string &moduleName) {
-    // check module exists
-    return this->modules[moduleName];
+    if (moduleName == SM_BASIC_RULE) {
+        return this->modules[SM_BASIC_RULE];
+    }
+    else if (moduleName == SM_FILE_WHITELIST) {
+        return this->modules[SM_FILE_WHITELIST];
+    }
+    else if (moduleName == SM_NETWORK_MONITOR) {
+        return this->modules[SM_NETWORK_MONITOR];
+    }
+    else {
+        assert(0);
+    }
 }
 
 RuleModule::RuleModule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up) : ctxp(ctxp), ruleNode(ruleNode), up(up) {}
