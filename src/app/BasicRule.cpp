@@ -124,7 +124,7 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
         if (pSpec.action == "matchRe" && !this->matchRe(pSpec, reg, tid)) {
             goto end;
         }
-        else if (pSpec.action == "matchBytes" && !this->matchBytes(pSpec, reg, tid)) {
+        else if (pSpec.action == "matchBytes" && !this->matchBytes(pSpec, regs, tid, rule.sysnum)) {
             goto end;
         }
         else if (pSpec.action == "equal" && reg == pSpec.intValue) {
@@ -174,7 +174,7 @@ bool BasicRule::matchRe(const struct ptrace_arg_cmp &pSpec, const unsigned long 
     return true;
 }
 
-bool BasicRule::matchBytes(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid) {
+bool BasicRule::matchBytes(const struct ptrace_arg_cmp &pSpec, const user_regs_struct &regs, const int tid, const int sysnum) {
     // data configured in rule
     std::vector<unsigned char> bytes;
     for (const int byte : pSpec.bytesValue) {
@@ -182,22 +182,22 @@ bool BasicRule::matchBytes(const struct ptrace_arg_cmp &pSpec, const unsigned lo
     }
 
     // data to be checked
-    char buf[SM_MAX_STRING_SIZE];
-    this->up->readStrFrom(tid, (char *)reg, buf, SM_MAX_STRING_SIZE);
-    // spdlog::info("matchRe: {}", std::string(buf));
+    util::ParaInfo paraInfo;
+    this->up->getParaInfo(tid, sysnum, pSpec.paraIndex, regs, paraInfo);
+    const unsigned char *actualBytes = reinterpret_cast<const unsigned char *>(paraInfo.value);
+    const long actualSize = paraInfo.size;
 
-    // check (only support bytes in string)
-    const int bufSize = strlen(buf);
+    // check
     const int bytesSize = bytes.size();
-    if (bytesSize > bufSize) {
+    if (bytesSize > actualSize) {
         spdlog::info("bytes configured in rule is longer, mismatch");
         return true;
     }
 
-    for (int i = 0; i <= bufSize - bytesSize; i++) {
+    for (int i = 0; i <= actualSize - bytesSize; i++) {
         for (int j = 0; j < bytesSize; j++) {
             // mismatch here
-            if (buf[i + j] != bytes[j])
+            if (actualBytes[i + j] != bytes[j])
                 break;
 
             // there isn't any mismatch

@@ -32,7 +32,7 @@ TEST_F(FileWhitelistFixture, InWhitelist) {
     char c = '1';
     EXPECT_CALL(*this->up, readStrFrom(tid, _, _, SM_MAX_FILENAME))
         .Times(1)
-        .WillOnce(SetArrayArgument<2>(filename, filename + strlen(filename) + 1));  // why +1 here
+        .WillOnce(SetArrayArgument<2>(filename, filename + strlen(filename) + 1));
 
     bool doPassCheck = fileWhitelist.check(SM_EVM_OPEN, regs, tid);
     ASSERT_TRUE(doPassCheck);

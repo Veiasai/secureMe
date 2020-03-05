@@ -63,8 +63,7 @@ void Daemon::run() {
 
 void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
     user_regs_struct regs;
-    this->up->getRegs(tid, regs);
-
+    this->up->getRegs(tid, &regs);
     bool doPassCheck;
     if (SM_IN_BASIC_RULE(eventMsg)) {
         doPassCheck = std::dynamic_pointer_cast<rule::BasicRule>(this->rulemgr->getModule(SM_BASIC_RULE))->check(eventMsg, regs, tid);

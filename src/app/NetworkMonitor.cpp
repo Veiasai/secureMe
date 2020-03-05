@@ -30,7 +30,7 @@ bool NetworkMonitor::check(const long eventMsg, const user_regs_struct &regs, co
     // connect-caused trap
     const int size = regs.rdx;
     spdlog::info("sockaddr length: {}", size);
-    char *buf = new char(size);
+    char *buf = new char[size];
     this->up->readBytesFrom(tid, (char *)regs.rsi, buf, size);
     const struct sockaddr *sa = reinterpret_cast<struct sockaddr *>(buf);
 

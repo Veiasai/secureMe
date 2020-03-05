@@ -45,7 +45,7 @@ public:
     virtual void initRules() override;
     virtual bool check(const long eventMsg, const user_regs_struct &regs, const int tid) override;
     virtual bool matchRe(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid);
-    virtual bool matchBytes(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid);
+    virtual bool matchBytes(const struct ptrace_arg_cmp &pSpec, const user_regs_struct &regs, const int tid, const int sysnum);
 };
 
 } // namespace rule
