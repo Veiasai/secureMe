@@ -74,6 +74,17 @@ int Utils::getParaInfo(int tid, const int sysnum, const int paraIndex, const use
     return 0;
 }
 
+bool Utils::needReturnValue(const int sysnum, const int paraIndex, const std::string &action) {
+    if (action != "matchBytes") {
+        return false;
+    }
+    const ParaInfo paraInfo = paraInfoTable[sysnum][paraIndex];
+    if (paraInfo.size == ParaIndex::Ret) {
+        return true;
+    }
+    return false;
+}
+
 long Utils::paraReg(const user_regs_struct &regs, const int index) {
     switch (index) {
         case ParaIndex::Ret:

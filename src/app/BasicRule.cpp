@@ -53,7 +53,14 @@ void BasicRule::initRules() {
     int offset = 0;
     for (Rule rule : this->rules) {
         if (rule.needExtraCheck) {
-            seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 0);
+            int returnValueOffset = 0;
+            for (struct ptrace_arg_cmp pSpec : rule.pSpecs) {
+                if (this->up->needReturnValue(rule.sysnum, pSpec.paraIndex, pSpec.action)) {
+                    returnValueOffset = SM_RETURN_VALUE_OFFSET;
+                    break;
+                }
+            }
+            seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset + returnValueOffset), rule.sysnum, 0);
         }
         else {
             switch (rule.specs.size()) {

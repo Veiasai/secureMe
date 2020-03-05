@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <stdlib.h>
 #include <sys/user.h>
 #include <sys/ptrace.h>
@@ -16,6 +17,7 @@ public:
     virtual int getRegs(int tid, user_regs_struct *regs);
     virtual int getParaInfo(int tid, const int sysnum, const int paraIndex, const user_regs_struct &regs, ParaInfo &paraInfo);
     virtual long paraReg(const user_regs_struct &regs, const int index);
+    virtual bool needReturnValue(const int sysnum, const int paraIndex, const std::string &action);
 };
 
 } // namespace util
