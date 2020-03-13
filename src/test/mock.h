@@ -17,7 +17,7 @@ using namespace util;
 
 class MockRuleManager : public RuleManager {
 public:
-    MOCK_METHOD(std::shared_ptr<RuleModule>, getModule, (const std::string &moduleName), (override));
+    MOCK_METHOD(std::shared_ptr<RuleModule>, getModule, (const long eventMsg), (override));
 };
 
 class MockBasicRule : public BasicRule {
@@ -37,7 +37,7 @@ public:
 
 class MockUtils : public Utils {
 public:
-    MOCK_METHOD(int, getRegs, (int tid, user_regs_struct &regs), (override));
+    MOCK_METHOD(int, getRegs, (int tid, user_regs_struct *regs), (override));
     MOCK_METHOD(int, readStrFrom, (int tid, const char *p, char *buf, size_t s), (override));
 };
 }}
