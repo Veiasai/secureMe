@@ -39,5 +39,6 @@ class MockUtils : public Utils {
 public:
     MOCK_METHOD(int, getRegs, (int tid, user_regs_struct *regs), (override));
     MOCK_METHOD(int, readStrFrom, (int tid, const char *p, char *buf, size_t s), (override));
+    MOCK_METHOD(int, readBytesFrom, (int tid, const char *p, char *buf, size_t s), (override));
 };
 }}
