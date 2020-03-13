@@ -27,6 +27,7 @@ public:
     RuleManager(const YAML::Node &config, const std::shared_ptr<util::Utils> &up);
     virtual void applyRules() const;
     virtual std::shared_ptr<RuleModule> getModule(const long eventMsg);
+    virtual int handleEvent(const long eventMsg, const pid_t tid, const user_regs_struct &regs);
 };
 
 class RuleModule

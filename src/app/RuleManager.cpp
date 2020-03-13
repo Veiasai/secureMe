@@ -33,6 +33,16 @@ std::shared_ptr<RuleModule> RuleManager::getModule(const long eventMsg) {
     }
 }
 
+int RuleManager::handleEvent(const long eventMsg, const pid_t tid, const user_regs_struct &regs) {
+    std::shared_ptr<rule::RuleModule> ruleModule = this->getModule(eventMsg);
+    bool doPassCheck = ruleModule->check(eventMsg, regs, tid);
+
+    if (!doPassCheck) {
+        return 1;
+    }
+    return 0;
+}
+
 RuleModule::RuleModule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ruleNode, const std::shared_ptr<util::Utils> &up) : ctxp(ctxp), ruleNode(ruleNode), up(up) {}
 
 } // namespace rule
