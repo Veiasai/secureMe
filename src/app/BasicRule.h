@@ -33,8 +33,8 @@ private:
 
         Rule(const int sysnum, const int id, const std::vector<struct scmp_arg_cmp> &specs) : 
             sysnum(sysnum), id(id), specs(specs), needExtraCheck(false) {}
-        Rule(const int sysnum, const int id, const std::vector<struct ptrace_arg_cmp> &pSpecs) : 
-            sysnum(sysnum), id(id), pSpecs(pSpecs), needExtraCheck(true) {}
+        Rule(const int sysnum, const int id, const std::vector<struct scmp_arg_cmp> &specs, const std::vector<struct ptrace_arg_cmp> &pSpecs) : 
+            sysnum(sysnum), id(id), specs(specs), pSpecs(pSpecs), needExtraCheck(true) {}
     };
 
     std::vector<Rule> rules;
