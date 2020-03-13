@@ -18,14 +18,14 @@ void RuleManager::applyRules() const {
     seccomp_load(*this->ctxp);
 }
 
-std::shared_ptr<RuleModule> RuleManager::getModule(const std::string &moduleName) {
-    if (moduleName == SM_BASIC_RULE) {
+std::shared_ptr<RuleModule> RuleManager::getModule(const long eventMsg) {
+    if (SM_IN_BASIC_RULE(eventMsg)) {
         return this->modules[SM_BASIC_RULE];
     }
-    else if (moduleName == SM_FILE_WHITELIST) {
+    else if (SM_IN_FILE_WHITELIST(eventMsg)) {
         return this->modules[SM_FILE_WHITELIST];
     }
-    else if (moduleName == SM_NETWORK_MONITOR) {
+    else if (SM_IN_NETWORK_MONITOR(eventMsg)) {
         return this->modules[SM_NETWORK_MONITOR];
     }
     else {

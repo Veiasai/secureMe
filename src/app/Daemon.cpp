@@ -102,19 +102,8 @@ void Daemon::run() {
 }
 
 void Daemon::handleEvent(const long eventMsg, const pid_t tid, const user_regs_struct &regs) {
-    bool doPassCheck;
-    if (SM_IN_BASIC_RULE(eventMsg)) {
-        doPassCheck = std::dynamic_pointer_cast<rule::BasicRule>(this->rulemgr->getModule(SM_BASIC_RULE))->check(eventMsg, regs, tid);
-    }
-    else if (SM_IN_FILE_WHITELIST(eventMsg)) {
-        doPassCheck = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule(SM_FILE_WHITELIST))->check(eventMsg, regs, tid);
-    }
-    else if (SM_IN_NETWORK_MONITOR(eventMsg)) {
-        doPassCheck = std::dynamic_pointer_cast<rule::NetworkMonitor>(this->rulemgr->getModule(SM_NETWORK_MONITOR))->check(eventMsg, regs, tid);
-    }
-    else {
-        assert(0);
-    }
+    std::shared_ptr<rule::RuleModule> ruleModule = this->rulemgr->getModule(eventMsg);
+    bool doPassCheck = ruleModule->check(eventMsg, regs, tid);
 
     if (!doPassCheck) {
         this->end();

@@ -31,7 +31,6 @@ struct RVThreadInfo {
 class Daemon
 {
 private:
-    
     const pid_t child;
     const std::shared_ptr<rule::RuleManager> rulemgr;
     const std::shared_ptr<util::Utils> up;
