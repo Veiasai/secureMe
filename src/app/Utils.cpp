@@ -106,5 +106,28 @@ long Utils::paraReg(const user_regs_struct &regs, const int index) {
     }
 }
 
+bool Utils::isEvent(const int status, const int event) {
+    return (status >> 8) == (SIGTRAP | event << 8);
+}
+
+bool Utils::hasEvent(const int status) {
+    return status >> 16 != 0;
+}
+
+bool Utils::isNewThread(const int status) {
+    // new thread will start from stopped state cause by SIGSTOP
+    return (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP);
+}
+
+long Utils::getEventMsg(const int tid) {
+    long msg;
+    ptrace(PTRACE_GETEVENTMSG, tid, nullptr, (long)&msg);
+    return msg;
+}
+
+void Utils::killTarget(const int tid) {
+    kill(tid, SIGKILL);
+}
+
 } // namespace util
 } // namespace SAIL

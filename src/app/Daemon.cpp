@@ -8,21 +8,7 @@ namespace SAIL { namespace core {
 Daemon::Daemon(const pid_t child, const std::shared_ptr<rule::RuleManager> &rulemgr, const std::shared_ptr<util::Utils> &up) 
     : child(child), rulemgr(rulemgr), up(up) {}
 
-static bool isEvent(int status, int event)
-{
-    return (status >> 8) == (SIGTRAP | event << 8);
-}
 
-static bool hasEvent(int status)
-{
-    return status >> 16 != 0;
-}
-
-static bool isNewThread(int status)
-{
-    // new thread will start from stopped state cause by SIGSTOP
-    return (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP);
-}
 
 void Daemon::setOptions() {
     int status;
@@ -51,7 +37,10 @@ void Daemon::run() {
 }
 
 void Daemon::loop(const int tid, const int status) {
-    if (isEvent(status, PTRACE_EVENT_CLONE) || isEvent(status, PTRACE_EVENT_FORK) || isEvent(status, PTRACE_EVENT_VFORK)) {
+    if (this->up->isEvent(status, PTRACE_EVENT_CLONE) || 
+        this->up->isEvent(status, PTRACE_EVENT_FORK) || 
+        this->up->isEvent(status, PTRACE_EVENT_VFORK)) 
+    {
         spdlog::info("clone caught and continue");
         ptrace(PTRACE_CONT, tid, nullptr, nullptr);
         return;
@@ -81,16 +70,15 @@ void Daemon::loop(const int tid, const int status) {
     }
 
     // assert(hasEvent(status) || isNewThread(status));
-    if (hasEvent(status)) {
+    if (this->up->hasEvent(status)) {
         // get event message
-        long msg;
-        ptrace(PTRACE_GETEVENTMSG, tid, nullptr, (long)&msg);
+        const long msg = this->up->getEventMsg(tid);
         spdlog::info("get event message: {}", msg);
 
         user_regs_struct regs;
         this->up->getRegs(tid, &regs);
         // handle return value catch
-        if (isEvent(status, PTRACE_EVENT_SECCOMP) && msg >= SM_RETURN_VALUE_OFFSET) {
+        if (this->up->isEvent(status, PTRACE_EVENT_SECCOMP) && msg >= SM_RETURN_VALUE_OFFSET) {
             // in this condition, the wanted data is stored as return value
             // so we need to continue the child process with PTRACE_SYSCALL twice to get it
             // because the first PTRACE_SYSCALL can only catch the call-regs
@@ -112,7 +100,7 @@ void Daemon::loop(const int tid, const int status) {
 }
 
 void Daemon::end() {
-    kill(this->child, SIGKILL);
+    this->up->killTarget(this->child);
 }
 
 } // namespace core
