@@ -38,7 +38,12 @@ public:
 class MockUtils : public Utils {
 public:
     MOCK_METHOD(int, getRegs, (int tid, user_regs_struct *regs), (override));
+    MOCK_METHOD(int, getParaInfo, (int tid, const int sysnum, const int paraIndex, const user_regs_struct &regs, ParaInfo &paraInfo), (override));
     MOCK_METHOD(int, readStrFrom, (int tid, const char *p, char *buf, size_t s), (override));
     MOCK_METHOD(int, readBytesFrom, (int tid, const char *p, char *buf, size_t s), (override));
+    MOCK_METHOD(bool, isEvent, (const int status, const int event), (override));
+    MOCK_METHOD(bool, hasEvent, (const int status), (override));
+    MOCK_METHOD(long, getEventMsg, (const int tid), (override));
+    MOCK_METHOD(void, killTarget, (const int tid), (override));
 };
 }}

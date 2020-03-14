@@ -51,7 +51,7 @@ int Utils::getParaInfo(int tid, const int sysnum, const int paraIndex, const use
             break;
         }
         case ParaType::pointer: {
-            paraInfo.size = this->paraReg(regs, paraInfo.size);  // todo: handle return value
+            paraInfo.size = this->paraReg(regs, paraInfo.size);
             char *buf = new char[paraInfo.size];
             this->readBytesFrom(tid, reinterpret_cast<const char *>(this->paraReg(regs, paraIndex)), buf, paraInfo.size);
             paraInfo.value = reinterpret_cast<long>(buf);
