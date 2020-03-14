@@ -23,13 +23,13 @@ int Utils::readBytesFrom(int tid, const char *p, char *buf, size_t s)
 {
     size_t count = 0;
     while (s - count > 8) {
-        *(long *)(buf + count) = ptrace(PTRACE_PEEKDATA, tid, (long)p + count, nullptr);
-        spdlog::info("[tid: {}] [readBytesFrom] [{:x}]", tid, *(long *)(buf + count));
+        *(unsigned long *)(buf + count) = ptrace(PTRACE_PEEKDATA, tid, (long)p + count, nullptr);
+        spdlog::info("[tid: {}] [readBytesFrom] [{:x}]", tid, *(unsigned long *)(buf + count));
         count += 8;
     }
 
     if (s - count > 0) {
-        long data = ptrace(PTRACE_PEEKDATA, tid, (long)p + count, nullptr);
+        unsigned long data = ptrace(PTRACE_PEEKDATA, tid, (long)p + count, nullptr);
         char *bdata = (char *)&data;
         spdlog::info("[tid: {}] [readBytesFrom] [{:x}]", tid, data);
         for (int i = 0; count + i < s; i++) {

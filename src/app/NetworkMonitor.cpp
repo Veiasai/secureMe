@@ -32,7 +32,7 @@ bool NetworkMonitor::check(const long eventMsg, const user_regs_struct &regs, co
     spdlog::info("sockaddr length: {}", size);
     char *buf = new char[size];
     this->up->readBytesFrom(tid, (char *)regs.rsi, buf, size);
-    spdlog::info("sock buf: {:x}", *(long *)buf);
+    spdlog::info("sock buf: {:x}", *(unsigned long *)buf);
     const struct sockaddr *sa = reinterpret_cast<struct sockaddr *>(buf);
 
     if (sa->sa_family == AF_INET) {
