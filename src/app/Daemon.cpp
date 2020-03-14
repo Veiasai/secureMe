@@ -25,11 +25,15 @@ void Daemon::run() {
     while (true) {
         int tid = waitpid(-1, &status, 0);
         spdlog::info("----------------------------------------");
-        spdlog::info("target {} traps with status: {:x}", tid, status);
+        spdlog::info("thread {} traps with status: {:x}", tid, status);
 
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
-            spdlog::info("target exit");
-            break;  // fix: exit of child process of target shouldn't cause termination of target
+            spdlog::info("thread {} exit", tid);
+            if (tid == this->child) {
+                spdlog::info("target exit");
+                break;
+            }
+            continue;
         }
 
         this->loop(tid, status);
