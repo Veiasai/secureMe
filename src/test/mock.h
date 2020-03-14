@@ -46,4 +46,6 @@ public:
     MOCK_METHOD(long, getEventMsg, (const int tid), (override));
     MOCK_METHOD(void, killTarget, (const int tid), (override));
 };
-}}
+
+} // namespace test
+} // namespace SAIL

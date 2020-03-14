@@ -236,4 +236,6 @@ TEST_F(BasicRuleFixture, MultiRule) {
     doPassCheck = basicRule.check(SM_EVM_BASIC_BASE + 1, regs, tid);
     ASSERT_FALSE(doPassCheck);
 }
-}}
+
+} // namespace test
+} // namespace SAIL

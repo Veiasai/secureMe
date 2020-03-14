@@ -51,4 +51,6 @@ TEST_F(FileWhitelistFixture, NotInWhitelist) {
     bool doPassCheck = fileWhitelist.check(SM_EVM_OPEN, regs, tid);
     ASSERT_FALSE(doPassCheck);
 }
-}}
+
+} // namespace test
+} // namespace SAIL
