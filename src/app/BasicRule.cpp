@@ -106,9 +106,6 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
         else if (pSpec.action == "matchBytes" && !this->matchBytes(pSpec, regs, tid, rule.sysnum)) {
             goto end;
         }
-        else {
-            assert(0);
-        }
     }
     spdlog::info("basic rule {}: all check pass", rule.id);
     return true;
