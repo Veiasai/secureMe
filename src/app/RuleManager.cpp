@@ -9,9 +9,18 @@ RuleManager::RuleManager(const YAML::Node &config, const std::shared_ptr<util::U
     this->ctxp.reset(new scmp_filter_ctx(seccomp_init(SCMP_ACT_ALLOW)));
 
     // order matters
-    this->modules[SM_BASIC_RULE] = std::make_shared<BasicRule>(this->ctxp, config["rules"], up);
-    this->modules[SM_FILE_WHITELIST] = std::make_shared<FileWhitelist>(this->ctxp, config["plugins"]["filewhitelist"], up);
-    this->modules[SM_NETWORK_MONITOR] = std::make_shared<NetworkMonitor>(this->ctxp, config["plugins"]["network"], up);
+    if (config["rules"].IsDefined()) {
+        spdlog::info("BasicRule Defined");
+        this->modules[SM_BASIC_RULE] = std::make_shared<BasicRule>(this->ctxp, config["rules"], up);
+    }
+    if (config["plugins"].IsDefined() && config["plugins"]["filewhitelist"].IsDefined()) {
+        spdlog::info("FileWhitelist Defined");
+        this->modules[SM_FILE_WHITELIST] = std::make_shared<FileWhitelist>(this->ctxp, config["plugins"]["filewhitelist"], up);
+    }
+    if (config["plugins"].IsDefined() && config["plugins"]["network"].IsDefined()) {
+        spdlog::info("NetworkMonitor Defined");
+        this->modules[SM_NETWORK_MONITOR] = std::make_shared<NetworkMonitor>(this->ctxp, config["plugins"]["network"], up);
+    }
 }
 
 void RuleManager::applyRules() const {
