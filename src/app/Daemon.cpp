@@ -6,8 +6,11 @@
 namespace SAIL { namespace core {
 
 Daemon::Daemon(const pid_t child, const std::shared_ptr<rule::RuleManager> &rulemgr, const std::shared_ptr<util::Utils> &up) 
-    : child(child), rulemgr(rulemgr), up(up) 
-{
+    : child(child), rulemgr(rulemgr), up(up) {}
+
+
+
+void Daemon::setOptions() {
     int status;
     // catch the execv-caused SIGTRAP here
     waitpid(this->child, &status, WSTOPPED);
@@ -17,74 +20,91 @@ Daemon::Daemon(const pid_t child, const std::shared_ptr<rule::RuleManager> &rule
     ptrace(PTRACE_CONT, this->child, nullptr, nullptr);
 }
 
-static bool isEvent(int status, int event)
-{
-    return (status >> 8) == (SIGTRAP | event << 8);
-}
-
-static bool hasEvent(int status)
-{
-    return status >> 16 != 0;
-}
-
-static bool isNewThread(int status)
-{
-    // new thread will start from stopped state cause by SIGSTOP
-    return (WIFSTOPPED(status) && WSTOPSIG(status) == SIGSTOP);
-}
-
 void Daemon::run() {
     int status;
     while (true) {
         int tid = waitpid(-1, &status, 0);
         spdlog::info("----------------------------------------");
-        spdlog::info("target {} traps with status: {:x}", tid, status);
+        spdlog::info("thread {} traps with status: {:x}", tid, status);
 
         if (WIFEXITED(status) || WIFSIGNALED(status)) {
-            spdlog::info("target exit");
-            break;
+            spdlog::info("thread {} exit", tid);
+            if (tid == this->child) {
+                spdlog::info("target exit");
+                break;
+            }
+            continue;
         }
 
-        // assert(hasEvent(status) || isNewThread(status));
-        if (hasEvent(status)) {
-            // get event message
-            long msg;
-            ptrace(PTRACE_GETEVENTMSG, tid, nullptr, (long)&msg);
-            spdlog::info("get event message: {}", msg);
-
-            // handle event
-            this->handleEvent(msg, tid);
-        }
-
-        ptrace(PTRACE_CONT, tid, nullptr, nullptr);
+        this->loop(tid, status);
     }
 }
 
-void Daemon::handleEvent(const long eventMsg, const pid_t tid) {
-    user_regs_struct regs;
-    ptrace(PTRACE_GETREGS, tid, nullptr, &regs);
-
-    bool doPassCheck;
-    if (SM_IN_BASIC_RULE(eventMsg)) {
-        doPassCheck = std::dynamic_pointer_cast<rule::BasicRule>(this->rulemgr->getModule(SM_BASIC_RULE))->check(eventMsg, regs, tid);
-    }
-    else if (SM_IN_FILE_WHITELIST(eventMsg)) {
-        doPassCheck = std::dynamic_pointer_cast<rule::FileWhitelist>(this->rulemgr->getModule(SM_FILE_WHITELIST))->check(eventMsg, regs, tid);
-    }
-    else if (SM_IN_NETWORK_MONITOR(eventMsg)) {
-        doPassCheck = std::dynamic_pointer_cast<rule::NetworkMonitor>(this->rulemgr->getModule(SM_NETWORK_MONITOR))->check(eventMsg, regs, tid);
-    }
-    else {
-        assert(0);
+void Daemon::loop(const int tid, const int status) {
+    if (this->up->isEvent(status, PTRACE_EVENT_CLONE) || 
+        this->up->isEvent(status, PTRACE_EVENT_FORK) || 
+        this->up->isEvent(status, PTRACE_EVENT_VFORK)) 
+    {
+        spdlog::info("clone caught and continue");
+        ptrace(PTRACE_CONT, tid, nullptr, nullptr);
+        return;
     }
 
-    if (!doPassCheck) {
-        this->end();
+    if (this->RVThreads.find(tid) != this->RVThreads.end()) {
+        // need to catch return value
+        if (this->RVThreads[tid].syscallTimes == NOTYET) {
+            this->RVThreads[tid].syscallTimes = ONCE;
+            ptrace(PTRACE_SYSCALL, tid, nullptr, nullptr);
+            return;
+        }
+        else if (this->RVThreads[tid].syscallTimes == ONCE) {
+            this->RVThreads[tid].syscallTimes = TWICE;
+            user_regs_struct regs;
+            this->up->getRegs(tid, &regs);
+            this->RVThreads[tid].regs.rax = regs.rax;  // catch return value
+
+            int r = this->rulemgr->handleEvent(this->RVThreads[tid].eventMsg - SM_RETURN_VALUE_OFFSET, tid, this->RVThreads[tid].regs);
+            if (r == 1) {
+                this->end();
+            }
+            this->RVThreads.erase(tid);
+            ptrace(PTRACE_CONT, tid, nullptr, nullptr);
+            return;
+        }
     }
+
+    // assert(hasEvent(status) || isNewThread(status));
+    if (this->up->hasEvent(status)) {
+        // get event message
+        const long msg = this->up->getEventMsg(tid);
+        spdlog::info("get event message: {}", msg);
+
+        user_regs_struct regs;
+        this->up->getRegs(tid, &regs);
+        // handle return value catch
+        if (this->up->isEvent(status, PTRACE_EVENT_SECCOMP) && msg >= SM_RETURN_VALUE_OFFSET) {
+            // in this condition, the wanted data is stored as return value
+            // so we need to continue the child process with PTRACE_SYSCALL twice to get it
+            // because the first PTRACE_SYSCALL can only catch the call-regs
+            // that is to say, the child process receives signals like EVENT->SIGTRAP->SIGTRAP
+            // and after the two PTRACE_SYSCALL, another PTRACE_CONT will take place
+            this->RVThreads[tid] = RVThreadInfo(regs, msg);
+            ptrace(PTRACE_SYSCALL, tid, nullptr, nullptr);
+            return;
+        }
+
+        // handle event
+        int r = this->rulemgr->handleEvent(msg, tid, regs);
+        if (r == 1) {
+            this->end();
+        }
+    }
+
+    ptrace(PTRACE_CONT, tid, nullptr, nullptr);
 }
 
 void Daemon::end() {
-    kill(this->child, SIGKILL);
+    this->up->killTarget(this->child);
 }
 
 } // namespace core

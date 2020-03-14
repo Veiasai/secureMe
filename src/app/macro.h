@@ -7,6 +7,8 @@ namespace SAIL {
 #define SM_EVM_CONNECT      20
 #define SM_EVM_BASIC_BASE   100
 
+#define SM_RETURN_VALUE_OFFSET 1000
+
 // rule module macro
 #define SM_BASIC_RULE       "BasicRule"
 #define SM_FILE_WHITELIST   "FileWhitelist"

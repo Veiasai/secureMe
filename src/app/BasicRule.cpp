@@ -26,12 +26,7 @@ BasicRule::BasicRule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ru
                     pSpecs.emplace_back(paraIndex, action, spec["value"].as<std::vector<int>>());
                 }
                 else {
-                    // don't need extra check yet
-                    pSpecs.emplace_back(paraIndex, action, spec["value"].as<int>());
-                }
-
-                // build specs, potentially
-                if (!needExtraCheck) {
+                    // don't need extra check
                     const scmp_datum_t value = spec["value"].as<scmp_datum_t>();
                     specs.push_back((struct scmp_arg_cmp){paraIndex, this->cmpActionMap.at(action), value});
                 }
@@ -41,7 +36,7 @@ BasicRule::BasicRule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ru
             this->rules.emplace_back(sysnum, id, specs);
         }
         else {
-            this->rules.emplace_back(sysnum, id, pSpecs);
+            this->rules.emplace_back(sysnum, id, specs, pSpecs);
         }
     }
 
@@ -52,39 +47,21 @@ BasicRule::BasicRule(std::shared_ptr<scmp_filter_ctx> ctxp, const YAML::Node &ru
 void BasicRule::initRules() {
     int offset = 0;
     for (Rule rule : this->rules) {
-        if (rule.needExtraCheck) {
-            seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 0);
-        }
-        else {
-            switch (rule.specs.size()) {
-                case 0:
-                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 0);
-                    break;
-                case 1:
-                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 1, 
-                        rule.specs[0]);
-                    break;
-                case 2:
-                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 2, 
-                        rule.specs[0], rule.specs[1]);
-                    break;
-                case 3:
-                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 3, 
-                        rule.specs[0], rule.specs[1], rule.specs[2]);
-                    break;
-                case 4:
-                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 4, 
-                        rule.specs[0], rule.specs[1], rule.specs[2], rule.specs[3]);
-                    break;
-                case 5:
-                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 5, 
-                        rule.specs[0], rule.specs[1], rule.specs[2], rule.specs[3], rule.specs[4]);
-                    break;
-                case 6:
-                    seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset), rule.sysnum, 6, 
-                        rule.specs[0], rule.specs[1], rule.specs[2], rule.specs[3], rule.specs[4], rule.specs[5]);
-                    break;
+        int returnValueOffset = 0;
+        for (struct ptrace_arg_cmp pSpec : rule.pSpecs) {
+            if (this->up->needReturnValue(rule.sysnum, pSpec.paraIndex, pSpec.action)) {
+                returnValueOffset = SM_RETURN_VALUE_OFFSET;
+                break;
             }
+        }
+        
+        // to be consistent with ToBeCarried, once one of the specs is hit, the whole rule is considered as broken
+        // seccomp's logic is that only all specs are hit would the rule be considered as broken so we need a little trick
+        if (rule.specs.empty()) {
+            seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset + returnValueOffset), rule.sysnum, 0);
+        }
+        for (auto spec : rule.specs) {
+            seccomp_rule_add(*this->ctxp, SCMP_ACT_TRACE(SM_EVM_BASIC_BASE + offset + returnValueOffset), rule.sysnum, 1, spec);
         }
         offset++;
     }
@@ -92,8 +69,10 @@ void BasicRule::initRules() {
 
 bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const int tid) {
     const Rule rule = this->rules[eventMsg - SM_EVM_BASIC_BASE];
-    if (!rule.needExtraCheck) {
-        // don't need extra check but still trapped in, which means an unwanted syscall
+    if (!rule.needExtraCheck || !rule.specs.empty()) {
+        // don't need extra check or there are some para checks that seccomp could handle
+        // but still trapped in, which means an unwanted syscall
+        // that is to say, the check method only serves matchRe and matchBytes
         goto end;
     }
 
@@ -124,29 +103,8 @@ bool BasicRule::check(const long eventMsg, const user_regs_struct &regs, const i
         if (pSpec.action == "matchRe" && !this->matchRe(pSpec, reg, tid)) {
             goto end;
         }
-        else if (pSpec.action == "matchBytes" && !this->matchBytes(pSpec, reg, tid)) {
+        else if (pSpec.action == "matchBytes" && !this->matchBytes(pSpec, regs, tid, rule.sysnum)) {
             goto end;
-        }
-        else if (pSpec.action == "equal" && reg == pSpec.intValue) {
-            goto end;
-        }
-        else if (pSpec.action == "notEqual" && reg != pSpec.intValue) {
-            goto end;
-        }
-        else if (pSpec.action == "greater" && reg > pSpec.intValue) {
-            goto end;
-        }
-        else if (pSpec.action == "notGreater" && reg <= pSpec.intValue) {
-            goto end;
-        }
-        else if (pSpec.action == "less" && reg < pSpec.intValue) {
-            goto end;
-        }
-        else if (pSpec.action == "notLess" && reg >= pSpec.intValue) {
-            goto end;
-        }
-        else {
-            assert(0);
         }
     }
     spdlog::info("basic rule {}: all check pass", rule.id);
@@ -174,7 +132,7 @@ bool BasicRule::matchRe(const struct ptrace_arg_cmp &pSpec, const unsigned long 
     return true;
 }
 
-bool BasicRule::matchBytes(const struct ptrace_arg_cmp &pSpec, const unsigned long long reg, const int tid) {
+bool BasicRule::matchBytes(const struct ptrace_arg_cmp &pSpec, const user_regs_struct &regs, const int tid, const int sysnum) {
     // data configured in rule
     std::vector<unsigned char> bytes;
     for (const int byte : pSpec.bytesValue) {
@@ -182,22 +140,22 @@ bool BasicRule::matchBytes(const struct ptrace_arg_cmp &pSpec, const unsigned lo
     }
 
     // data to be checked
-    char buf[SM_MAX_STRING_SIZE];
-    this->up->readStrFrom(tid, (char *)reg, buf, SM_MAX_STRING_SIZE);
-    // spdlog::info("matchRe: {}", std::string(buf));
+    util::ParaInfo paraInfo;
+    this->up->getParaInfo(tid, sysnum, pSpec.paraIndex, regs, paraInfo);
+    const unsigned char *actualBytes = reinterpret_cast<const unsigned char *>(paraInfo.value);
+    const long actualSize = paraInfo.size;
 
-    // check (only support bytes in string)
-    const int bufSize = strlen(buf);
+    // check
     const int bytesSize = bytes.size();
-    if (bytesSize > bufSize) {
+    if (bytesSize > actualSize) {
         spdlog::info("bytes configured in rule is longer, mismatch");
         return true;
     }
 
-    for (int i = 0; i <= bufSize - bytesSize; i++) {
+    for (int i = 0; i <= actualSize - bytesSize; i++) {
         for (int j = 0; j < bytesSize; j++) {
             // mismatch here
-            if (buf[i + j] != bytes[j])
+            if (actualBytes[i + j] != bytes[j])
                 break;
 
             // there isn't any mismatch

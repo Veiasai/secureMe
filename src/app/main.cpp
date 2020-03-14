@@ -119,6 +119,7 @@ int main(int argc, char **argv)
         runTarget(argInfo, rulemgr);
     }
     std::unique_ptr<core::Daemon> daemon = std::make_unique<core::Daemon>(child, rulemgr, up);
+    daemon->setOptions();
     daemon->run();
 
     return 0;
