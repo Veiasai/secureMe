@@ -7,6 +7,5 @@ then
     mkdir build/release
 fi
 
-cmake -DCMAKE_BUILD_TYPE=Debug -S . -B build/debug
-
-cmake -DCMAKE_BUILD_TYPE=Release -S . -B build/release
+cd build/debug && cmake -DCMAKE_BUILD_TYPE=Debug ../..
+cd ../release && cmake -DCMAKE_BUILD_TYPE=Release ../..
